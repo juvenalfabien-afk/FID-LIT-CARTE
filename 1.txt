@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Carte Fidélité – Pheno&Co</title>
+  <link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;Pheno&amp;Co Fidélité&quot;,&quot;short_name&quot;:&quot;Fidélité&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;#000000&quot;,&quot;theme_color&quot;:&quot;#d7a14b&quot;}">
+  <meta name="theme-color" content="#d7a14b"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-title" content="Pheno Fidélité"/>
+  <style>
+    :root{--gold:#d7a14b;--gold-soft:#f1c57a;--text:#f7f2ea;--muted:#d7d0c7;}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      background:radial-gradient(circle at top,rgba(215,161,75,.18),transparent 24%),
+        radial-gradient(circle at bottom,rgba(215,161,75,.12),transparent 18%),#000;
+      color:var(--text);min-height:100vh;
+      display:flex;align-items:center;justify-content:center;padding:20px;
+    }
+    .card{
+      width:min(100%,460px);
+      background:linear-gradient(180deg,rgba(18,18,18,.96),rgba(8,8,8,.98));
+      border:1.5px solid rgba(215,161,75,.85);border-radius:28px;
+      padding:24px 20px;
+      box-shadow:0 0 0 1px rgba(255,214,153,.08) inset,0 12px 40px rgba(0,0,0,.55);
+      position:relative;overflow:hidden;
+    }
+    .glow{position:absolute;inset:auto 10% 0 10%;height:2px;
+      background:linear-gradient(90deg,transparent,var(--gold-soft),transparent);
+      box-shadow:0 0 18px rgba(241,197,122,.85);}
+    .glow.top{top:0;bottom:auto;}
+    .logo-title{font-family:Georgia,serif;font-style:italic;font-weight:700;
+      font-size:clamp(2rem,7vw,3rem);color:var(--gold-soft);text-align:center;}
+    .logo-sub{display:block;text-align:center;
+      border-top:2px solid rgba(215,161,75,.65);border-bottom:2px solid rgba(215,161,75,.65);
+      padding:4px 0;color:#f3d298;letter-spacing:2px;font-weight:800;font-size:.8rem;margin-top:6px;}
+    .fidelite-title{text-align:center;color:var(--gold-soft);font-weight:800;
+      font-size:1.1rem;letter-spacing:1px;margin:12px 0 6px;}
+    .divider{height:1px;background:linear-gradient(90deg,transparent,rgba(215,161,75,.6),transparent);margin:8px 0 16px;}
+    .screen{display:none;}.screen.active{display:block;}
+    .form-group{margin-bottom:14px;}
+    .form-group label{display:block;color:var(--gold-soft);font-weight:700;font-size:.9rem;margin-bottom:6px;}
+    .form-group input{width:100%;background:rgba(255,255,255,.05);
+      border:1px solid rgba(215,161,75,.4);border-radius:12px;
+      padding:12px 14px;color:var(--text);font-size:1rem;}
+    .form-group input:focus{outline:none;border-color:var(--gold);}
+    .btn{display:flex;align-items:center;justify-content:center;gap:8px;
+      width:100%;text-decoration:none;color:#fff8ef;
+      background:linear-gradient(180deg,rgba(215,161,75,.18),rgba(215,161,75,.08));
+      border:1px solid rgba(215,161,75,.6);border-radius:16px;
+      padding:14px;font-weight:800;font-size:1rem;cursor:pointer;
+      transition:.2s ease;margin-top:10px;font-family:inherit;}
+    .btn-gold{background:linear-gradient(180deg,rgba(215,161,75,.35),rgba(215,161,75,.15));border-color:var(--gold);}
+    .btn-red{border-color:#ff6b6b;color:#ff6b6b;background:rgba(255,50,50,.05);}
+    .tampons{display:flex;justify-content:center;gap:8px;margin:12px 0;flex-wrap:wrap;}
+    .tampon-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;}
+    .tampon{width:48px;height:48px;border-radius:50%;
+      border:2px solid rgba(215,161,75,.3);
+      display:flex;align-items:center;justify-content:center;
+      font-size:1.2rem;background:rgba(255,255,255,.02);}
+    .tampon.filled{border-color:var(--gold);
+      background:radial-gradient(circle,rgba(215,161,75,.2),rgba(215,161,75,.05));
+      box-shadow:0 0 10px rgba(215,161,75,.25);}
+    .tampon-date{font-size:.55rem;color:var(--muted);text-align:center;max-width:48px;}
+    .progress-big{text-align:center;color:var(--gold-soft);font-weight:800;font-size:1.6rem;margin-bottom:4px;}
+    .client-box{background:rgba(215,161,75,.06);border:1px solid rgba(215,161,75,.2);
+      border-radius:16px;padding:14px;margin-bottom:14px;}
+    .client-name{font-weight:800;font-size:1.1rem;color:var(--gold-soft);}
+    .client-detail{color:var(--muted);font-size:.85rem;margin-top:3px;}
+    .offert-box{text-align:center;
+      background:linear-gradient(135deg,rgba(215,161,75,.15),rgba(215,161,75,.05));
+      border:1.5px solid rgba(215,161,75,.7);border-radius:20px;padding:20px;margin:12px 0;}
+    .offert-box .big{font-size:2.5rem;display:block;margin-bottom:8px;}
+    .offert-box h3{color:var(--gold-soft);font-size:1.2rem;margin-bottom:4px;}
+    .offert-box p{color:var(--muted);font-size:.85rem;line-height:1.5;}
+    .alerte-box{text-align:center;background:rgba(255,50,50,.1);
+      border:1.5px solid rgba(255,50,50,.4);border-radius:16px;padding:14px;margin:10px 0;}
+    .alerte-box p{color:#ff6b6b;font-weight:700;}
+    .msg{border-radius:12px;padding:12px;text-align:center;font-weight:700;margin-top:10px;display:none;}
+    .msg-ok{background:rgba(0,200,100,.1);border:1px solid rgba(0,200,100,.3);color:#4ade80;}
+    .msg-err{background:rgba(255,50,50,.1);border:1px solid rgba(255,50,50,.3);color:#ff6b6b;}
+    .small-link{text-align:center;margin-top:14px;}
+    .small-link a{color:var(--muted);font-size:.85rem;text-decoration:underline;cursor:pointer;}
+    .pin-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:200;
+      align-items:center;justify-content:center;padding:20px;}
+    .pin-overlay.open{display:flex;}
+    .pin-box{background:linear-gradient(180deg,#161616,#0a0a0a);
+      border:1.5px solid rgba(215,161,75,.8);border-radius:24px;
+      padding:28px 22px;width:min(100%,340px);text-align:center;}
+    .pin-box h3{color:var(--gold-soft);margin-bottom:6px;}
+    .pin-box p{color:var(--muted);font-size:.85rem;margin-bottom:16px;}
+    .pin-input{width:100%;background:rgba(255,255,255,.05);
+      border:1px solid rgba(215,161,75,.4);border-radius:12px;
+      padding:14px;color:var(--text);font-size:1.6rem;
+      text-align:center;letter-spacing:10px;margin-bottom:12px;}
+    .pin-input:focus{outline:none;border-color:var(--gold);}
+    .pin-err{color:#ff6b6b;font-size:.85rem;margin-bottom:8px;display:none;}
+    .info-text{text-align:center;color:var(--muted);font-size:.9rem;line-height:1.5;margin:12px 0;}
+    .spin{text-align:center;color:var(--muted);padding:12px;font-size:.9rem;display:none;}
+    /* LISTE CLIENTS */
+    .client-row{
+      background:rgba(215,161,75,.05);border:1px solid rgba(215,161,75,.15);
+      border-radius:14px;padding:12px 14px;margin-bottom:10px;
+      display:flex;justify-content:space-between;align-items:center;
+      cursor:pointer;transition:.2s;
+    }
+    .client-row:hover{background:rgba(215,161,75,.1);}
+    .client-row-left .nom{color:var(--gold-soft);font-weight:700;}
+    .client-row-left .sub{color:var(--muted);font-size:.8rem;margin-top:2px;}
+    .client-row-right{text-align:right;}
+    .badge{background:rgba(215,161,75,.2);border:1px solid var(--gold);
+      border-radius:20px;padding:4px 10px;font-size:.8rem;font-weight:700;color:var(--gold-soft);}
+    .badge-offert{background:rgba(0,200,100,.15);border-color:#4ade80;color:#4ade80;}
+    .badge-expire{background:rgba(255,50,50,.15);border-color:#ff6b6b;color:#ff6b6b;}
+    .section-header{color:var(--gold-soft);font-weight:800;font-size:.9rem;
+      letter-spacing:1px;margin:16px 0 10px;text-align:center;
+      border-bottom:1px solid rgba(215,161,75,.2);padding-bottom:6px;}
+    .stats-row{display:flex;gap:8px;margin-bottom:14px;}
+    .stat-box{flex:1;background:rgba(215,161,75,.06);border:1px solid rgba(215,161,75,.2);
+      border-radius:12px;padding:10px;text-align:center;}
+    .stat-num{color:var(--gold-soft);font-weight:800;font-size:1.4rem;}
+    .stat-label{color:var(--muted);font-size:.75rem;margin-top:2px;}
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="glow top"></div>
+  <div class="logo-title">Pheno&amp;Co</div>
+  <span class="logo-sub">BARBER SHOP</span>
+  <div class="fidelite-title">✂️ CARTE FIDÉLITÉ</div>
+  <div class="divider"></div>
+
+  <!-- ACCUEIL -->
+
+  <div class="screen active" id="s-accueil">
+    <p class="info-text">6 visites = ta <strong style="color:var(--gold-soft)">7ème coupe offerte !</strong><br><span style="font-size:.8rem">Valable 30 jours après le 6ème tampon</span></p>
+    <div class="tampons">
+      <div class="tampon-wrap"><div class="tampon filled">✂️</div></div>
+      <div class="tampon-wrap"><div class="tampon filled">✂️</div></div>
+      <div class="tampon-wrap"><div class="tampon filled">✂️</div></div>
+      <div class="tampon-wrap"><div class="tampon">✂️</div></div>
+      <div class="tampon-wrap"><div class="tampon">✂️</div></div>
+      <div class="tampon-wrap"><div class="tampon">✂️</div></div>
+      <div class="tampon-wrap"><div class="tampon">🎁</div></div>
+    </div>
+    <button class="btn btn-gold" onclick="go('s-inscription')">🎉 Créer ma carte</button>
+    <button class="btn" onclick="go('s-recherche')" style="margin-top:8px">🔍 J'ai déjà une carte</button>
+    <div class="small-link"><a onclick="demanderPin('gerant')">⚙️ Espace gérant</a></div>
+  </div>
+
+  <!-- INSCRIPTION -->
+
+  <div class="screen" id="s-inscription">
+    <h3 style="color:var(--gold-soft);text-align:center;margin-bottom:16px">Créer ma carte</h3>
+    <div class="form-group"><label>Prénom *</label><input id="i-prenom" type="text" placeholder="Ton prénom"/></div>
+    <div class="form-group"><label>Téléphone *</label><input id="i-tel" type="tel" placeholder="06 XX XX XX XX"/></div>
+    <div class="form-group"><label>Email (optionnel)</label><input id="i-email" type="email" placeholder="ton@email.com"/></div>
+    <div class="msg msg-err" id="err-ins"></div>
+    <div class="spin" id="load-ins">Création en cours...</div>
+    <button class="btn btn-gold" onclick="creerCarte()">✅ Créer ma carte</button>
+    <button class="btn" onclick="go('s-accueil')" style="margin-top:8px">← Retour</button>
+  </div>
+
+  <!-- CARTE CLIENT -->
+
+  <div class="screen" id="s-carte">
+    <div class="client-box">
+      <div class="client-name" id="c-nom"></div>
+      <div class="client-detail" id="c-tel"></div>
+      <div class="client-detail" id="c-date-creation"></div>
+    </div>
+    <div class="progress-big" id="c-progress"></div>
+    <div class="tampons" id="c-tampons"></div>
+    <div class="alerte-box" id="c-alerte" style="display:none">
+      <p>⏰ Offre expirée !<br>Le délai de 30 jours est dépassé.</p>
+    </div>
+    <div class="offert-box" id="c-offert" style="display:none">
+      <span class="big">🎁</span>
+      <h3>7ème coupe OFFERTE !</h3>
+      <p id="c-offert-date"></p>
+    </div>
+    <!-- INSTALL BOX -->
+    <div style="background:rgba(215,161,75,.08);border:1px solid rgba(215,161,75,.3);border-radius:16px;padding:14px;margin-top:14px;text-align:center;">
+      <div style="font-size:1.3rem;margin-bottom:6px">📲</div>
+      <div style="color:var(--gold-soft);font-weight:800;font-size:.95rem;margin-bottom:6px">Installe ta carte sur ton téléphone !</div>
+      <div style="color:var(--muted);font-size:.82rem;line-height:1.6">
+        <strong style="color:var(--text)">iPhone Safari :</strong> appuie sur ⬆️ puis "Sur l'écran d'accueil"<br>
+        <strong style="color:var(--text)">Android Chrome :</strong> appuie sur ⋮ puis "Ajouter à l'écran d'accueil"
+      </div>
+    </div>
+    <button class="btn" onclick="go('s-accueil')" style="margin-top:12px">← Retour</button>
+  </div>
+
+  <!-- RECHERCHE -->
+
+  <div class="screen" id="s-recherche">
+    <h3 style="color:var(--gold-soft);text-align:center;margin-bottom:16px">Retrouver ma carte</h3>
+    <div class="form-group"><label>Ton téléphone</label><input id="i-rech" type="tel" placeholder="06 XX XX XX XX"/></div>
+    <div class="msg msg-err" id="err-rech"></div>
+    <div class="spin" id="load-rech">Recherche...</div>
+    <button class="btn btn-gold" onclick="rechercherCarte()">🔍 Trouver ma carte</button>
+    <button class="btn" onclick="go('s-accueil')" style="margin-top:8px">← Retour</button>
+  </div>
+
+  <!-- GÉRANT MENU -->
+
+  <div class="screen" id="s-gerant">
+    <h3 style="color:var(--gold-soft);text-align:center;margin-bottom:16px">⚙️ Espace Gérant</h3>
+    <button class="btn btn-gold" onclick="go('s-gerant-client')">✂️ Valider une visite</button>
+    <button class="btn" onclick="chargerClients()" style="margin-top:8px">📋 Voir tous les clients</button>
+    <button class="btn" onclick="go('s-accueil')" style="margin-top:8px">← Retour</button>
+  </div>
+
+  <!-- GÉRANT VALIDER VISITE -->
+
+  <div class="screen" id="s-gerant-client">
+    <h3 style="color:var(--gold-soft);text-align:center;margin-bottom:16px">✂️ Valider une visite</h3>
+    <div class="form-group"><label>Téléphone du client</label><input id="i-gtel" type="tel" placeholder="06 XX XX XX XX"/></div>
+    <div class="msg msg-err" id="err-ger"></div>
+    <div class="spin" id="load-ger">Recherche...</div>
+    <button class="btn btn-gold" onclick="trouverClient()">🔍 Trouver</button>
+    <div id="g-info" style="display:none;margin-top:14px">
+      <div class="client-box">
+        <div class="client-name" id="g-nom"></div>
+        <div class="client-detail" id="g-tel-d"></div>
+        <div class="client-detail" id="g-derniere"></div>
+      </div>
+      <div class="progress-big" id="g-progress"></div>
+      <div class="tampons" id="g-tampons"></div>
+      <div class="alerte-box" id="g-alerte" style="display:none">
+        <p>⏰ Offre expirée — 30 jours dépassés</p>
+      </div>
+      <div class="msg msg-ok" id="msg-ok-ger">✅ Tampon ajouté !</div>
+      <div class="msg msg-ok" id="msg-reset-ger">🔄 Carte remise à zéro !</div>
+      <button class="btn btn-gold" id="btn-stamp" onclick="demanderPin('tampon')" style="margin-top:8px">✂️ Ajouter un tampon</button>
+      <button class="btn" id="btn-reset" onclick="demanderPin('reset')" style="display:none;margin-top:8px;border-color:#f1c57a;color:#f1c57a">🎁 Valider coupe offerte & Reset</button>
+      <button class="btn btn-red" onclick="demanderPin('supprimer')" style="margin-top:8px">🗑️ Supprimer ce client</button>
+    </div>
+    <button class="btn" onclick="go('s-gerant')" style="margin-top:12px">← Retour</button>
+  </div>
+
+  <!-- LISTE CLIENTS -->
+
+  <div class="screen" id="s-liste">
+    <h3 style="color:var(--gold-soft);text-align:center;margin-bottom:12px">📋 Mes clients</h3>
+    <div class="stats-row" id="stats-row"></div>
+    <div class="spin" id="load-liste">Chargement...</div>
+    <div id="liste-clients"></div>
+    <button class="btn" onclick="go('s-gerant')" style="margin-top:12px">← Retour</button>
+  </div>
+
+  <div class="glow"></div>
+</div>
+
+<!-- PIN -->
+
+<div class="pin-overlay" id="pin-ov">
+  <div class="pin-box">
+    <h3 id="pin-title">Code gérant</h3>
+    <p id="pin-sub">Entre ton PIN pour valider</p>
+    <input class="pin-input" id="pin-inp" type="password" maxlength="4" placeholder="••••" inputmode="numeric"/>
+    <div class="pin-err" id="pin-err">Code incorrect !</div>
+    <button class="btn btn-gold" onclick="valPin()">✅ Valider</button>
+    <button class="btn" onclick="ferPin()" style="margin-top:8px">Annuler</button>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, getDocs, collection, orderBy, query } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAszW6i7b8tAdRVKmsgzlMicYg6Q4Hi31E",
+  authDomain: "carte-de-fidel.firebaseapp.com",
+  projectId: "carte-de-fidel",
+  storageBucket: "carte-de-fidel.firebasestorage.app",
+  messagingSenderId: "475585058425",
+  appId: "1:475585058425:web:f776930462473052e6a6a8"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const PIN = "1141";
+const MAX = 6;
+const DELAI = 30;
+let pinAction = null, clientCur = null;
+
+const normTel = t => t.replace(/[\s\-\.]/g,'');
+const today = () => new Date().toLocaleDateString('fr-FR');
+
+function offreExpiree(dates) {
+  if(!dates||dates.length<MAX) return false;
+  const [j,m,a]=dates[MAX-1].split('/');
+  const diff=(new Date()-new Date(a,m-1,j))/(1000*60*60*24);
+  return diff>DELAI;
+}
+
+function joursRestants(dates) {
+  if(!dates||dates.length<MAX) return 0;
+  const [j,m,a]=dates[MAX-1].split('/');
+  return Math.max(0,Math.ceil(DELAI-(new Date()-new Date(a,m-1,j))/(1000*60*60*24)));
+}
+
+window.go = id => {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+};
+
+function renderTampons(cid, visites, dates=[]) {
+  const c=document.getElementById(cid); c.innerHTML='';
+  for(let i=0;i<=MAX;i++) {
+    const w=document.createElement('div'); w.className='tampon-wrap';
+    const d=document.createElement('div');
+    d.className='tampon'+(i<visites?' filled':'');
+    d.textContent=i===MAX?'🎁':'✂️';
+    w.appendChild(d);
+    const dt=document.createElement('div');
+    dt.className='tampon-date';
+    dt.textContent=i<visites&&dates[i]?dates[i]:'';
+    w.appendChild(dt);
+    c.appendChild(w);
+  }
+}
+
+function afficherCarte(d) {
+  document.getElementById('c-nom').textContent=d.prenom;
+  document.getElementById('c-tel').textContent='📞 '+d.tel;
+  document.getElementById('c-date-creation').textContent='📅 Client depuis le '+d.created;
+  const v=d.visites||0, dates=d.dates||[];
+  document.getElementById('c-progress').textContent=v+' / '+MAX;
+  renderTampons('c-tampons',v,dates);
+  const expire=offreExpiree(dates), offert=v>=MAX&&!expire;
+  document.getElementById('c-offert').style.display=offert?'block':'none';
+  document.getElementById('c-alerte').style.display=(v>=MAX&&expire)?'block':'none';
+  if(offert) document.getElementById('c-offert-date').textContent='⏰ Il te reste '+joursRestants(dates)+' jour(s) !';
+}
+
+function afficherGerant(d) {
+  document.getElementById('g-nom').textContent=d.prenom;
+  document.getElementById('g-tel-d').textContent='📞 '+d.tel;
+  const dates=d.dates||[];
+  const derniere=dates.length?'Dernière visite : '+dates[dates.length-1]:'Aucune visite encore';
+  document.getElementById('g-derniere').textContent='📅 '+derniere;
+  const v=d.visites||0;
+  document.getElementById('g-progress').textContent=v+' / '+MAX;
+  renderTampons('g-tampons',v,dates);
+  const expire=offreExpiree(dates), offert=v>=MAX&&!expire;
+  document.getElementById('g-info').style.display='block';
+  document.getElementById('g-alerte').style.display=(v>=MAX&&expire)?'block':'none';
+  document.getElementById('btn-stamp').style.display=v>=MAX?'none':'flex';
+  document.getElementById('btn-reset').style.display=offert?'flex':'none';
+}
+
+window.creerCarte = async () => {
+  const prenom=document.getElementById('i-prenom').value.trim();
+  const tel=normTel(document.getElementById('i-tel').value.trim());
+  const email=document.getElementById('i-email').value.trim();
+  const err=document.getElementById('err-ins');
+  if(!prenom||!tel){err.textContent='Remplis prénom et téléphone !';err.style.display='block';return;}
+  err.style.display='none';
+  document.getElementById('load-ins').style.display='block';
+  try {
+    const ref=doc(db,'clients',tel);
+    const snap=await getDoc(ref);
+    if(!snap.exists()) await setDoc(ref,{prenom,tel,email,visites:0,dates:[],created:today()});
+    const data=(await getDoc(ref)).data();
+    clientCur={...data,id:tel};
+    afficherCarte(data); go('s-carte');
+  } catch(e){err.textContent='Erreur de connexion.';err.style.display='block';}
+  document.getElementById('load-ins').style.display='none';
+};
+
+window.rechercherCarte = async () => {
+  const tel=normTel(document.getElementById('i-rech').value.trim());
+  const err=document.getElementById('err-rech');
+  if(!tel){err.textContent='Entre ton numéro.';err.style.display='block';return;}
+  err.style.display='none';
+  document.getElementById('load-rech').style.display='block';
+  try {
+    const snap=await getDoc(doc(db,'clients',tel));
+    if(!snap.exists()){err.textContent='Aucune carte trouvée.';err.style.display='block';}
+    else{clientCur={...snap.data(),id:tel};afficherCarte(snap.data());go('s-carte');}
+  } catch(e){err.textContent='Erreur de connexion.';err.style.display='block';}
+  document.getElementById('load-rech').style.display='none';
+};
+
+window.trouverClient = async () => {
+  const tel=normTel(document.getElementById('i-gtel').value.trim());
+  const err=document.getElementById('err-ger');
+  if(!tel){err.textContent='Entre un numéro.';err.style.display='block';return;}
+  err.style.display='none';
+  document.getElementById('load-ger').style.display='block';
+  try {
+    const snap=await getDoc(doc(db,'clients',tel));
+    if(!snap.exists()){err.textContent='Client introuvable.';err.style.display='block';document.getElementById('g-info').style.display='none';}
+    else{clientCur={...snap.data(),id:tel};afficherGerant(clientCur);}
+  } catch(e){err.textContent='Erreur de connexion.';err.style.display='block';}
+  document.getElementById('load-ger').style.display='none';
+};
+
+window.chargerClients = async () => {
+  go('s-liste');
+  document.getElementById('load-liste').style.display='block';
+  document.getElementById('liste-clients').innerHTML='';
+  try {
+    const snap=await getDocs(collection(db,'clients'));
+    const clients=[];
+    snap.forEach(d=>clients.push({...d.data(),id:d.id}));
+    clients.sort((a,b)=>((b.visites||0)-(a.visites||0)));
+
+    // Stats
+    const total=clients.length;
+    const offerts=clients.filter(c=>c.visites>=MAX&&!offreExpiree(c.dates||[])).length;
+    const expires=clients.filter(c=>c.visites>=MAX&&offreExpiree(c.dates||[])).length;
+    document.getElementById('stats-row').innerHTML=`
+      <div class="stat-box"><div class="stat-num">${total}</div><div class="stat-label">Clients</div></div>
+      <div class="stat-box"><div class="stat-num" style="color:#4ade80">${offerts}</div><div class="stat-label">Offres dispo</div></div>
+      <div class="stat-box"><div class="stat-num" style="color:#ff6b6b">${expires}</div><div class="stat-label">Expirées</div></div>
+    `;
+
+    const liste=document.getElementById('liste-clients');
+    if(clients.length===0){liste.innerHTML='<p style="text-align:center;color:var(--muted);padding:20px">Aucun client encore</p>';return;}
+
+    clients.forEach(c=>{
+      const v=c.visites||0, dates=c.dates||[];
+      const expire=offreExpiree(dates), offert=v>=MAX&&!expire;
+      let badgeClass='badge', badgeText=v+'/'+MAX;
+      if(offert){badgeClass='badge badge-offert';badgeText='🎁 Offerte !';}
+      else if(v>=MAX&&expire){badgeClass='badge badge-expire';badgeText='⏰ Expirée';}
+      const derniere=dates.length?'Dernière visite : '+dates[dates.length-1]:'Pas encore venu';
+      const row=document.createElement('div');
+      row.className='client-row';
+      row.innerHTML=`
+        <div class="client-row-left">
+          <div class="nom">${c.prenom}</div>
+          <div class="sub">📞 ${c.tel}</div>
+          <div class="sub">📅 ${derniere}</div>
+        </div>
+        <div class="client-row-right"><span class="${badgeClass}">${badgeText}</span></div>
+      `;
+      row.onclick=()=>{
+        clientCur=c;
+        document.getElementById('i-gtel').value=c.tel;
+        afficherGerant(c);
+        go('s-gerant-client');
+      };
+      liste.appendChild(row);
+    });
+  } catch(e){console.error(e);}
+  document.getElementById('load-liste').style.display='none';
+};
+
+window.demanderPin = action => {
+  pinAction=action;
+  const t={gerant:'Espace Gérant',tampon:'Valider la visite',reset:'Coupe offerte',supprimer:'Supprimer client'};
+  document.getElementById('pin-title').textContent=t[action]||'Code';
+  document.getElementById('pin-inp').value='';
+  document.getElementById('pin-err').style.display='none';
+  document.getElementById('pin-ov').classList.add('open');
+};
+
+window.ferPin = ()=>{document.getElementById('pin-ov').classList.remove('open');pinAction=null;};
+
+window.valPin = async () => {
+  if(document.getElementById('pin-inp').value!==PIN){
+    document.getElementById('pin-err').style.display='block';return;
+  }
+  const action=pinAction; ferPin();
+  if(action==='gerant'){go('s-gerant');return;}
+  if(!clientCur) return;
+  try {
+    if(action==='tampon'){
+      const newV=(clientCur.visites||0)+1;
+      const newDates=[...(clientCur.dates||[]),today()];
+      await updateDoc(doc(db,'clients',clientCur.id),{visites:newV,dates:newDates});
+      clientCur.visites=newV; clientCur.dates=newDates;
+      const ok=document.getElementById('msg-ok-ger');
+      ok.style.display='block'; setTimeout(()=>ok.style.display='none',2000);
+      afficherGerant(clientCur);
+    } else if(action==='reset'){
+      await updateDoc(doc(db,'clients',clientCur.id),{visites:0,dates:[]});
+      clientCur.visites=0; clientCur.dates=[];
+      const ok=document.getElementById('msg-reset-ger');
+      ok.style.display='block'; setTimeout(()=>ok.style.display='none',2000);
+      afficherGerant(clientCur);
+    } else if(action==='supprimer'){
+      await deleteDoc(doc(db,'clients',clientCur.id));
+      clientCur=null;
+      document.getElementById('g-info').style.display='none';
+      document.getElementById('i-gtel').value='';
+      go('s-gerant');
+    }
+  } catch(e){console.error(e);}
+};
+
+document.getElementById('pin-inp').addEventListener('keyup',e=>{if(e.key==='Enter')window.valPin();});
+</script>
+
+</body>
+</html>
