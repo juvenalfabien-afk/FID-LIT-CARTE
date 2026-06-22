@@ -1,1 +1,1 @@
-# FID-LIT-CARTE
+Version PHENO&CO fidélité - boutons reconnectés. Déployer index.html à la racine du dépôt Netlify/GitHub.
