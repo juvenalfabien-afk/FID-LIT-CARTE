@@ -294,6 +294,7 @@ body {
   <div class="screen" id="s-admin">
     <h3 style="color:var(--gold-soft);text-align:center;margin-bottom:12px">⚙️ ESPACE GÉRANT</h3>
     <div class="stats-row" id="stats-row"></div>
+    <button class="btn btn-sm" id="btn-export-csv" onclick="telechargerClientsCSV(this)" style="margin-bottom:12px">⬇️ Télécharger les clients (CSV)</button>
     <input class="search-input" id="search-client" type="text" placeholder="🔍 Rechercher par nom, prénom ou téléphone..." oninput="filtrerClients(this.value)" style="display:none"/>
     <div class="spin" id="load-liste">Chargement...</div>
     <div id="liste-clients"></div>
@@ -817,6 +818,47 @@ async function chargerAdmin() {
 }
 
 window.chargerAdmin = chargerAdmin;
+
+// Export CSV de tous les clients (espace gerant). Relit la base pour etre sur d'avoir tout le monde.
+window.telechargerClientsCSV = async (btn) => {
+  const label = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Préparation du fichier...'; }
+  try {
+    const snap = await getDocs(collection(db,'clients'));
+    const clients = [];
+    snap.forEach(d => clients.push({...d.data(), id:d.id}));
+    clients.sort((a,b) => (a.prenom||'').localeCompare(b.prenom||'','fr'));
+    const cell = v => {
+      const s = (v === undefined || v === null) ? '' : String(v);
+      return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+    };
+    const entete = ['Nom','Téléphone','Tampons','Carte','État coupe offerte','Jours restants','Date 6e visite','Total visites','Date création'];
+    const lignes = clients.map(c => {
+      const v = c.visites||0, dv = c.datesVisites||[];
+      let etat = 'En cours', jours = '';
+      if (v >= MAX && offreExpiree(dv)) etat = 'Expirée';
+      else if (v >= MAX) { etat = 'Disponible'; jours = joursRestants(dv); }
+      const total = c.totalVisites || (c.historique||[]).filter(x => x && x.type === 'visite').length || v;
+      return [c.prenom||'', c.tel||c.id, v, v+'/'+MAX, etat, jours, dv.length >= MAX ? dv[MAX-1] : '', total, c.dateCreation||''].map(cell).join(';');
+    });
+    const csv = '﻿' + [entete.join(';'), ...lignes].join('\r\n');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const d = new Date();
+    a.href = url;
+    a.download = 'clients-fidelite-pheno-' + d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0') + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    phenoToast('⬇️ ' + clients.length + ' clients exportés.', 'ok');
+  } catch(e) {
+    console.error(e);
+    phenoToast('Erreur : export impossible. Vérifie ta connexion.', 'err');
+  }
+  if (btn) { btn.disabled = false; btn.textContent = label; }
+};
 
 window.ajouterTampon = async (id, btn) => {
   btn.textContent='...'; btn.disabled=true;
