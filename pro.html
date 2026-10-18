@@ -103,6 +103,11 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .empty{color:var(--faint);font-size:14px}
 .login{max-width:420px;margin:8vh auto 0}
 .login img{display:block;width:120px;margin:0 auto 14px}
+.pass-wrap{position:relative}
+.pass-wrap input{padding-right:52px}
+.eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:42px;height:42px;border:0;background:transparent;color:var(--muted);display:grid;place-items:center;border-radius:10px}
+.eye svg{width:22px;height:22px}
+.eye[aria-pressed="true"]{color:var(--gold-soft)}
 .login h1{font-family:var(--font-display);text-align:center;margin:0 0 6px}
 .login p{text-align:center;color:var(--muted);margin:0 0 18px}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;background:var(--steel);border:1px solid var(--gold);color:var(--cream);padding:12px 18px;border-radius:var(--r-md);box-shadow:0 12px 30px rgba(0,0,0,.5);font-weight:600;max-width:calc(100% - 32px);text-align:center}
@@ -120,7 +125,11 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
     <p>Connecte-toi pour scanner les cartes et valider les passages.</p>
     <form id="f-login" novalidate>
       <div class="field"><label for="l-email">Email</label><input id="l-email" type="email" autocomplete="username" required></div>
-      <div class="field"><label for="l-pass">Mot de passe</label><input id="l-pass" type="password" autocomplete="current-password" minlength="8" required></div>
+      <div class="field"><label for="l-pass">Mot de passe</label>
+        <div class="pass-wrap"><input id="l-pass" type="password" autocomplete="current-password" minlength="8" required>
+          <button type="button" id="b-eye" class="eye" aria-label="Afficher le mot de passe" aria-pressed="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/><path id="eye-slash" d="M3 3l18 18"/></svg>
+          </button></div></div>
       <p class="err" id="l-err" role="alert"></p>
       <button class="btn btn-gold" id="b-login" type="submit">Se connecter</button>
     </form>
@@ -254,6 +263,13 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
     if (r.error) { err.textContent = /registered|exists/i.test(r.error.message) ? "Ce compte existe déjà : connecte-toi." : "Création impossible : " + r.error.message; return; }
     if (r.data && r.data.session) { start(); }
     else { err.style.color = "var(--ok)"; err.textContent = "Compte créé. Ouvre le mail de confirmation reçu, puis reviens te connecter ici."; }
+  });
+  $("b-eye").addEventListener("click", function () {
+    var inp = $("l-pass"), on = inp.type === "password";
+    inp.type = on ? "text" : "password";
+    this.setAttribute("aria-pressed", String(on));
+    this.setAttribute("aria-label", on ? "Masquer le mot de passe" : "Afficher le mot de passe");
+    document.getElementById("eye-slash").style.display = on ? "none" : "";
   });
   $("b-logout").addEventListener("click", async function () { stopScan(); await db.auth.signOut(); show("v-login"); });
 
