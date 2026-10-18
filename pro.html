@@ -92,6 +92,10 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .box.gift.expired{border-color:rgba(224,97,79,.6);background:rgba(224,97,79,.08)}
 .box h4{margin:0 0 6px;font-size:15px}
 .box p{margin:0 0 10px;font-size:13.5px;color:var(--muted)}
+.box.warn{border-color:rgba(232,163,61,.6);background:rgba(232,163,61,.08)}
+.more{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+.more summary{cursor:pointer;color:var(--gold-soft);font-weight:600;font-size:14px;padding:4px 0}
+.hist .void{background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:2px 8px;font-size:12px;margin-left:8px}
 .pay{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
 .pay button{padding:12px 6px;border-radius:12px;border:1px solid var(--line);background:var(--coal);color:var(--cream);font-weight:700}
 .pay button[aria-pressed="true"]{border-color:var(--gold);background:rgba(201,168,76,.18);color:var(--gold-soft)}
@@ -193,12 +197,20 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 
           <div class="box">
             <h4>Valider le passage</h4>
-            <p>Le tampon s'ajoute automatiquement une fois l'encaissement enregistré.</p>
-            <div class="field"><label for="v-service">Prestation</label><select id="v-service"></select></div>
+            <button class="btn btn-gold" id="b-stamp" type="button">+1 tampon</button>
+            <p class="note" style="margin:8px 0 0">Un appui suffit si tu as déjà encaissé sur ton terminal SumUp.</p>
+            <div class="box warn" id="v-force" hidden>
+              <h4 id="v-force-title">Déjà un tampon aujourd'hui</h4>
+              <p id="v-force-text">Ce client a déjà eu son tampon aujourd'hui (règle : un par jour). Pour un test ou un geste commercial, tu peux l'ajouter quand même.</p>
+              <button class="btn btn-ghost" id="b-force" type="button">Ajouter quand même</button>
+            </div>
+            <details class="more" id="v-more">
+              <summary>Enregistrer aussi l'encaissement (facultatif)</summary>
+            <div class="field" style="margin-top:12px"><label for="v-service">Prestation</label><select id="v-service"></select></div>
             <div class="field"><label for="v-amount">Montant payé (€)</label><input id="v-amount" type="number" inputmode="decimal" min="0" step="0.5"></div>
             <div class="pay" role="group" aria-label="Mode de paiement">
               <button type="button" data-m="cash" aria-pressed="true">Espèces</button>
-              <button type="button" data-m="card" aria-pressed="false">Carte</button>
+              <button type="button" data-m="card" aria-pressed="false">Carte (SumUp)</button>
               <button type="button" data-m="mixed" aria-pressed="false">Mixte</button>
             </div>
             <div class="row2" id="v-mixed" hidden>
@@ -206,7 +218,8 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
               <div class="field"><label>Dont carte (€)</label><input id="v-cardpart" type="text" readonly></div>
             </div>
             <p class="err" id="v-err" role="alert"></p>
-            <button class="btn btn-gold" id="b-validate" type="button">Encaisser et valider le tampon</button>
+            <button class="btn btn-ghost" id="b-validate" type="button">Encaisser et valider le tampon</button>
+            </details>
           </div>
 
           <div class="box">
@@ -440,7 +453,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
     var res = await Promise.all([
       db.from("loyalty_cards").select("stamps, cycle, wheel_tokens, total_visits").eq("client_id", id).maybeSingle(),
       db.from("rewards").select("id, type, label, code, expires_at, earned_at").eq("client_id", id).eq("status", "available").order("earned_at"),
-      db.from("payments").select("label, amount_cents, method, paid_at").eq("client_id", id).eq("voided", false).order("paid_at", { ascending: false }).limit(6)
+      db.from("payments").select("id, label, amount_cents, method, paid_at").eq("client_id", id).eq("voided", false).order("paid_at", { ascending: false }).limit(6)
     ]);
     S.card = res[0].data || { stamps: 0, cycle: 1, wheel_tokens: 0, total_visits: 0 };
     S.rewards = res[1].data || [];
@@ -467,10 +480,12 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
         "</p>" + (expired ? "" : '<button class="btn btn-ok" type="button" data-redeem="' + r.id + '">' + (r.type === "coupe" ? "Utiliser la coupe offerte" : "Donner la " + esc(name.toLowerCase())) + "</button>") + "</div>";
     }).join("");
 
-    $("b-validate").textContent = coupeOk ? "Encaisser quand même (coupe offerte en attente)" : "Encaisser et valider le tampon";
+    $("b-validate").textContent = "Encaisser et valider le tampon";
+    $("b-stamp").textContent = coupeOk ? "Coupe offerte en attente : utilise-la d'abord" : "+1 tampon (" + Math.min(s + 1, paid) + "/" + paid + ")";
+    $("b-stamp").disabled = !!coupeOk;
     $("c-hist").innerHTML = pays.length ? pays.map(function (p) {
       var m = { cash: "espèces", card: "carte", mixed: "mixte", transfer: "virement" }[p.method] || p.method;
-      return "<li><span>" + esc(p.label) + " · " + euros(p.amount_cents) + " (" + m + ")</span><span>" + fmtDateTime(p.paid_at) + "</span></li>";
+      return "<li><span>" + esc(p.label) + " · " + euros(p.amount_cents) + " (" + m + ")</span><span>" + fmtDateTime(p.paid_at) + '<button type="button" class="void" data-void="' + p.id + '">Annuler</button></span></li>';
     }).join("") : '<li><span class="empty">Pas encore de passage enregistré dans la nouvelle caisse.</span></li>';
   }
   $("c-rewards").addEventListener("click", async function (e) {
@@ -516,11 +531,48 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
     });
     btn.disabled = false;
     if (r.error) { err.textContent = "Encaissement non enregistré : " + r.error.message; return; }
+    var tokensBefore = S.card.wheel_tokens;
     await refreshClient(); loadToday();
     var after = S.card.stamps;
-    if (after > before) toast("Encaissé · tampon " + Math.min(after, 9) + "/9 ajouté" + (after === 9 ? " · coupe offerte gagnée !" : ""), "ok");
-    else if (after < before) toast("Encaissé · nouvelle carte démarrée (l'ancienne coupe offerte avait expiré)", "ok");
-    else toast("Encaissé · pas de nouveau tampon (déjà validé aujourd'hui ou coupe offerte en attente)", "");
+    if (after !== before) stampResult({ added: true, stamps: after, wheel: S.card.wheel_tokens > tokensBefore, reward: after === 9 }, true);
+    else stampResult({ added: false, reason: S.rewards.some(function (x) { return x.type === "coupe"; }) ? "coupe_en_attente" : "deja_aujourdhui" }, true);
+  });
+
+  /* ===== Tampon manuel ===== */
+  function stampResult(d, viaPay) {
+    $("v-force").hidden = true;
+    if (!d) { toast("Action impossible. Réessaie.", "bad"); return; }
+    if (d.added) {
+      var msg = (viaPay ? "Encaissé · " : "") + "Tampon " + Math.min(d.stamps, 9) + "/9 ajouté";
+      if (d.wheel) msg += " · tour de roue débloqué sur son téléphone !";
+      if (d.reward) msg += " · coupe offerte gagnée !";
+      toast(msg, "ok");
+    } else if (d.reason === "deja_aujourdhui") {
+      $("v-force").hidden = false;
+      if (viaPay) toast("Encaissé. Pas de tampon : il en a déjà eu un aujourd'hui.", "");
+    } else if (d.reason === "coupe_en_attente") {
+      toast((viaPay ? "Encaissé. " : "") + "Pas de tampon : sa coupe offerte attend d'être utilisée.", "");
+    }
+  }
+  async function manualStamp(force) {
+    if (!S.client) return;
+    var b = force ? $("b-force") : $("b-stamp"); b.disabled = true;
+    var r = await db.rpc("pro_add_stamp", { p_client: S.client.id, p_force: !!force });
+    b.disabled = false;
+    if (r.error) { toast("Tampon non ajouté : " + r.error.message, "bad"); return; }
+    await refreshClient();
+    stampResult(r.data, false);
+  }
+  $("b-stamp").addEventListener("click", function () { manualStamp(false); });
+  $("b-force").addEventListener("click", function () { manualStamp(true); });
+  $("c-hist").addEventListener("click", async function (e) {
+    var b = e.target.closest("button[data-void]"); if (!b) return;
+    if (b.getAttribute("data-armed") !== "1") { b.setAttribute("data-armed", "1"); b.textContent = "Confirmer ?"; setTimeout(function () { b.removeAttribute("data-armed"); b.textContent = "Annuler"; }, 4000); return; }
+    b.disabled = true;
+    var r = await db.from("payments").update({ voided: true }).eq("id", b.getAttribute("data-void"));
+    if (r.error) { toast("Annulation impossible.", "bad"); b.disabled = false; return; }
+    toast("Encaissement annulé (le tampon reste sur la carte).", "ok");
+    await refreshClient(); loadToday();
   });
 
   db.auth.onAuthStateChange(function (ev) { if (ev === "SIGNED_OUT") show("v-login"); });
