@@ -200,10 +200,21 @@ a.btn{text-decoration:none;box-sizing:border-box}
     <p id="h-summary">Ta carte t'attend.</p>
     <div class="welcome" style="margin:0;gap:12px">
       <button class="btn btn-gold" id="b-home-card" type="button">Voir ma carte</button>
-      <a class="btn btn-ghost" id="b-home-book" href="https://phenoandco.netlify.app/" target="_blank" rel="noopener">Prendre rendez-vous</a>
+      <button class="btn btn-ghost" id="b-home-book" type="button">Prendre rendez-vous</button>
     </div>
     <p class="small">Ce n'est pas toi ? <button type="button" id="b-home-switch" class="linklike">Changer de numéro</button></p>
     <p class="small">Pheno &amp; Co Barbershop · 18 rue d'Alger, Montpellier<br>Mardi, jeudi, vendredi, samedi 10h–17h30 · mercredi 12h–17h30</p>
+  </section>
+
+  <!-- Réservation, ouverte dans la carte avec un retour -->
+  <section id="v-book" hidden>
+    <header class="top" style="margin-bottom:10px">
+      <button class="icon-btn back" id="b-book-back" type="button" aria-label="Retour à l'accueil">‹ Accueil</button>
+      <div class="name" style="font-size:18px">Prendre rendez-vous</div>
+      <div class="spacer"></div>
+      <a class="icon-btn" href="https://phenoandco.netlify.app/" target="_blank" rel="noopener" style="text-decoration:none">Ouvrir à part</a>
+    </header>
+    <iframe id="book-frame" title="Réservation Pheno &amp; Co" style="display:block;width:100%;height:calc(100vh - 120px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));min-height:480px;border:1px solid var(--line);border-radius:16px;background:#0B1629"></iframe>
   </section>
 
   <!-- Carte -->
@@ -325,7 +336,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
   var state = { token: null, data: null, lastStamps: null, lastTokens: null, spinning: false, rotation: 0, soundOn: true };
 
   function $(id) { return document.getElementById(id); }
-  function show(id) { ["v-loading", "v-welcome", "v-home", "v-card"].forEach(function (v) { $(v).hidden = v !== id; }); window.scrollTo(0, 0); }
+  function show(id) { ["v-loading", "v-welcome", "v-home", "v-book", "v-card"].forEach(function (v) { $(v).hidden = v !== id; }); window.scrollTo(0, 0); }
   function store(k, v) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
   function read(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 
@@ -683,6 +694,12 @@ a.btn{text-decoration:none;box-sizing:border-box}
   $("b-home-switch").addEventListener("click", switchNumber);
   $("b-home-card").addEventListener("click", function () { Sound.unlock(); enterCard(); });
   $("b-back").addEventListener("click", goHome);
+  $("b-book-back").addEventListener("click", goHome);
+  $("b-home-book").addEventListener("click", function () {
+    var f = $("book-frame");
+    if (!f.getAttribute("src")) f.setAttribute("src", "https://phenoandco.netlify.app/");
+    show("v-book");
+  });
   $("b-install-close").addEventListener("click", function () { store("pnc_install_ok", "1"); $("c-install").hidden = true; });
   $("b-spin-open").addEventListener("click", function () { Sound.unlock(); openWheel(); });
   $("b-spin").addEventListener("click", spin);
