@@ -94,6 +94,8 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .box p{margin:0 0 10px;font-size:13.5px;color:var(--muted)}
 .box.warn{border-color:rgba(232,163,61,.6);background:rgba(232,163,61,.08)}
 .more{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+.paynow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+.linkbtn{background:none;border:0;color:var(--muted);text-decoration:underline;font-size:13px;padding:10px 0;cursor:pointer}
 .more summary{cursor:pointer;color:var(--gold-soft);font-weight:600;font-size:14px;padding:4px 0}
 .hist .void{background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:2px 8px;font-size:12px;margin-left:8px}
 .pay{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
@@ -198,27 +200,29 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
           <div class="box">
             <h4>Valider le passage</h4>
             <button class="btn btn-gold" id="b-stamp" type="button">+1 tampon</button>
-            <p class="note" style="margin:8px 0 0">Un appui suffit si tu as déjà encaissé sur ton terminal SumUp.</p>
+            <p class="note" style="margin:8px 0 0">Un appui suffit. Ensuite, si tu veux, indique espèces ou carte : ça part dans Naya Caisse.</p>
             <div class="box warn" id="v-force" hidden>
               <h4 id="v-force-title">Déjà un tampon aujourd'hui</h4>
               <p id="v-force-text">Ce client a déjà eu son tampon aujourd'hui (règle : un par jour). Pour un test ou un geste commercial, tu peux l'ajouter quand même.</p>
               <button class="btn btn-ghost" id="b-force" type="button">Ajouter quand même</button>
             </div>
             <details class="more" id="v-more">
-              <summary>Enregistrer aussi l'encaissement (facultatif)</summary>
+              <summary>Comment il a payé ? (facultatif, va dans Naya Caisse)</summary>
             <div class="field" style="margin-top:12px"><label for="v-service">Prestation</label><select id="v-service"></select></div>
             <div class="field"><label for="v-amount">Montant payé (€)</label><input id="v-amount" type="number" inputmode="decimal" min="0" step="0.5"></div>
-            <div class="pay" role="group" aria-label="Mode de paiement">
-              <button type="button" data-m="cash" aria-pressed="true">Espèces</button>
-              <button type="button" data-m="card" aria-pressed="false">Carte (SumUp)</button>
-              <button type="button" data-m="mixed" aria-pressed="false">Mixte</button>
+            <div class="paynow">
+              <button type="button" class="btn btn-ok" data-pay="cash">💵 Espèces</button>
+              <button type="button" class="btn btn-ok" data-pay="card">💳 Carte (SumUp)</button>
             </div>
-            <div class="row2" id="v-mixed" hidden>
+            <button type="button" class="linkbtn" id="b-mixed">Payé en partie espèces, en partie carte</button>
+            <div id="v-mixbox" hidden>
+            <div class="row2" id="v-mixed">
               <div class="field"><label for="v-cash">Dont espèces (€)</label><input id="v-cash" type="number" inputmode="decimal" min="0" step="0.5"></div>
               <div class="field"><label>Dont carte (€)</label><input id="v-cardpart" type="text" readonly></div>
             </div>
+            <button class="btn btn-ghost" id="b-validate" type="button">Valider le paiement mixte</button>
+            </div>
             <p class="err" id="v-err" role="alert"></p>
-            <button class="btn btn-ghost" id="b-validate" type="button">Encaisser et valider le tampon</button>
             </details>
           </div>
 
@@ -480,7 +484,6 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
         "</p>" + (expired ? "" : '<button class="btn btn-ok" type="button" data-redeem="' + r.id + '">' + (r.type === "coupe" ? "Utiliser la coupe offerte" : "Donner la " + esc(name.toLowerCase())) + "</button>") + "</div>";
     }).join("");
 
-    $("b-validate").textContent = "Encaisser et valider le tampon";
     $("b-stamp").textContent = coupeOk ? "Coupe offerte en attente : utilise-la d'abord" : "+1 tampon (" + Math.min(s + 1, paid) + "/" + paid + ")";
     $("b-stamp").disabled = !!coupeOk;
     $("c-hist").innerHTML = pays.length ? pays.map(function (p) {
@@ -498,13 +501,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   });
 
   /* ===== Paiement ===== */
-  document.querySelectorAll(".pay button").forEach(function (b) {
-    b.addEventListener("click", function () {
-      S.method = b.getAttribute("data-m");
-      document.querySelectorAll(".pay button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
-      $("v-mixed").hidden = S.method !== "mixed"; updateMixed();
-    });
-  });
+  $("b-mixed").addEventListener("click", function () { var bx = $("v-mixbox"); bx.hidden = !bx.hidden; updateMixed(); });
   function updateMixed() {
     var total = cents($("v-amount").value), cash = cents($("v-cash").value);
     $("v-cardpart").value = isFinite(total) && isFinite(cash) && cash <= total ? euros(total - cash) : "";
@@ -512,31 +509,38 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   $("v-amount").addEventListener("input", updateMixed);
   $("v-cash").addEventListener("input", updateMixed);
 
-  $("b-validate").addEventListener("click", async function () {
+  async function recordPayment(method, btn) {
     var err = $("v-err"); err.textContent = "";
     if (!S.client) return;
     var total = cents($("v-amount").value);
-    if (!isFinite(total) || total <= 0) { err.textContent = "Entre le montant payé."; return; }
+    if (!isFinite(total) || total <= 0) { err.textContent = "Entre le montant payé."; $("v-amount").focus(); return; }
     var cash = 0, card = 0;
-    if (S.method === "cash") cash = total;
-    else if (S.method === "card") card = total;
+    if (method === "cash") cash = total;
+    else if (method === "card") card = total;
     else { cash = cents($("v-cash").value); if (!isFinite(cash) || cash < 0 || cash > total) { err.textContent = "Indique la part payée en espèces (entre 0 et le total)."; return; } card = total - cash; }
     var svc = currentService();
-    var before = S.card.stamps;
-    var btn = $("b-validate"); btn.disabled = true;
+    var before = S.card.stamps, tokensBefore = S.card.wheel_tokens;
+    var stampedNow = S.justStamped === S.client.id;
+    btn.disabled = true;
     var r = await db.from("payments").insert({
       salon_id: S.salon.id, client_id: S.client.id, service_id: svc ? svc.id : null,
       label: svc ? svc.name : "Prestation", amount_cents: total, cash_cents: cash, card_cents: card,
-      method: S.method, counts_for_loyalty: svc ? svc.counts_for_loyalty : true
+      method: method, counts_for_loyalty: svc ? svc.counts_for_loyalty : true
     });
     btn.disabled = false;
     if (r.error) { err.textContent = "Encaissement non enregistré : " + r.error.message; return; }
-    var tokensBefore = S.card.wheel_tokens;
+    var how = method === "cash" ? "espèces" : method === "card" ? "carte" : "mixte";
     await refreshClient(); loadToday();
+    $("v-mixbox").hidden = true; $("v-more").open = false;
     var after = S.card.stamps;
+    if (stampedNow) { toast("Encaissé " + euros(total) + " en " + how + " · envoyé à Naya Caisse", "ok"); return; }
     if (after !== before) stampResult({ added: true, stamps: after, wheel: S.card.wheel_tokens > tokensBefore, reward: after === 9 }, true);
     else stampResult({ added: false, reason: S.rewards.some(function (x) { return x.type === "coupe"; }) ? "coupe_en_attente" : "deja_aujourdhui" }, true);
+  }
+  document.querySelectorAll("[data-pay]").forEach(function (b) {
+    b.addEventListener("click", function () { recordPayment(b.getAttribute("data-pay"), b); });
   });
+  $("b-validate").addEventListener("click", function () { recordPayment("mixed", $("b-validate")); });
 
   /* ===== Tampon manuel ===== */
   function stampResult(d, viaPay) {
@@ -562,6 +566,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
     if (r.error) { toast("Tampon non ajouté : " + r.error.message, "bad"); return; }
     await refreshClient();
     stampResult(r.data, false);
+    if (r.data && r.data.added) { S.justStamped = S.client.id; $("v-more").open = true; }
   }
   $("b-stamp").addEventListener("click", function () { manualStamp(false); });
   $("b-force").addEventListener("click", function () { manualStamp(true); });
