@@ -49,6 +49,11 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--gold-soft);outl
 .top .name{font-family:var(--font-display);font-weight:900;font-size:22px;letter-spacing:.02em;line-height:1.1}
 .top .addr{font-size:12.5px;color:var(--faint)}
 .top .spacer{flex:1}
+.kicker{margin:0;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-soft);font-weight:700}
+a.btn{text-decoration:none;box-sizing:border-box}
+.linklike{background:none;border:0;color:var(--gold-soft);text-decoration:underline;padding:4px 2px;font-size:inherit}
+.back{color:var(--gold-soft);border-color:rgba(201,168,76,.5);font-weight:600}
+@media (max-width:420px){.top .addr{display:none}.top img{width:40px;height:40px}.top .name{font-size:19px}}
 .icon-btn{white-space:nowrap;background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:7px 12px;font-size:13px}
 
 /* Accueil */
@@ -187,9 +192,24 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--gold-soft);outl
     <p class="small">Pheno &amp; Co Barbershop · 18 rue d'Alger, Montpellier</p>
   </section>
 
+  <!-- Accueil : client déjà reconnu sur ce téléphone -->
+  <section id="v-home" class="welcome" hidden>
+    <img class="logo" src="logo.png" alt="Pheno &amp; Co Barbershop">
+    <p class="kicker">Carte de fidélité</p>
+    <h1 id="h-hello">Bonjour</h1>
+    <p id="h-summary">Ta carte t'attend.</p>
+    <div class="welcome" style="margin:0;gap:12px">
+      <button class="btn btn-gold" id="b-home-card" type="button">Voir ma carte</button>
+      <a class="btn btn-ghost" id="b-home-book" href="https://phenoandco.netlify.app/" target="_blank" rel="noopener">Prendre rendez-vous</a>
+    </div>
+    <p class="small">Ce n'est pas toi ? <button type="button" id="b-home-switch" class="linklike">Changer de numéro</button></p>
+    <p class="small">Pheno &amp; Co Barbershop · 18 rue d'Alger, Montpellier<br>Mardi, jeudi, vendredi, samedi 10h–17h30 · mercredi 12h–17h30</p>
+  </section>
+
   <!-- Carte -->
   <section id="v-card" hidden>
     <header class="top">
+      <button class="icon-btn back" id="b-back" type="button" aria-label="Retour à l'accueil">‹ Accueil</button>
       <img src="logo.png" alt="">
       <div>
         <div class="name">Pheno &amp; Co</div>
@@ -305,7 +325,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--gold-soft);outl
   var state = { token: null, data: null, lastStamps: null, lastTokens: null, spinning: false, rotation: 0, soundOn: true };
 
   function $(id) { return document.getElementById(id); }
-  function show(id) { ["v-loading", "v-welcome", "v-card"].forEach(function (v) { $(v).hidden = v !== id; }); }
+  function show(id) { ["v-loading", "v-welcome", "v-home", "v-card"].forEach(function (v) { $(v).hidden = v !== id; }); window.scrollTo(0, 0); }
   function store(k, v) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
   function read(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 
@@ -619,12 +639,25 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--gold-soft);outl
   }
 
   async function enterCard() {
-    show("v-loading");
-    await loadCard(true);
+    if (!state.data) { show("v-loading"); await loadCard(true); }
     if (!state.data) return;
     show("v-card"); renderQR(); setupInstall();
     if (state.data.card.wheel_tokens > 0) setTimeout(openWheel, 700);
   }
+
+  // Page d'accueil : logo, bonjour, résumé de la carte et accès direct.
+  async function goHome() {
+    show("v-home");
+    if (!state.data) await loadCard(true);
+    if (!state.data) return;
+    var d = state.data, paid = d.salon.card_size - 1, s = Math.min(d.card.stamps, paid);
+    var coupe = d.rewards.some(function (r) { return r.type === "coupe"; });
+    $("h-hello").textContent = "Bonjour " + (firstName(d.client.first_name) || "");
+    $("h-summary").textContent = coupe ? "Ta coupe offerte t'attend au salon !"
+      : d.card.wheel_tokens > 0 ? s + " tampons sur " + paid + " · un tour de roue t'attend !"
+      : s + " tampons sur " + paid + " · encore " + (paid - s) + " avant ta coupe offerte.";
+  }
+  function switchNumber() { store(TOKEN_KEY, null); state.token = null; state.data = null; $("i-phone").value = ""; $("name-field").hidden = true; show("v-welcome"); }
 
   /* ================= OUVERTURE ================= */
   $("f-open").addEventListener("submit", async function (e) {
@@ -646,7 +679,10 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--gold-soft);outl
     btn.disabled = false; btn.textContent = $("name-field").hidden ? "Ouvrir ma carte" : "Créer ma carte";
   });
 
-  $("b-logout").addEventListener("click", function () { store(TOKEN_KEY, null); state.token = null; state.data = null; $("i-phone").value = ""; $("name-field").hidden = true; show("v-welcome"); });
+  $("b-logout").addEventListener("click", switchNumber);
+  $("b-home-switch").addEventListener("click", switchNumber);
+  $("b-home-card").addEventListener("click", function () { Sound.unlock(); enterCard(); });
+  $("b-back").addEventListener("click", goHome);
   $("b-install-close").addEventListener("click", function () { store("pnc_install_ok", "1"); $("c-install").hidden = true; });
   $("b-spin-open").addEventListener("click", function () { Sound.unlock(); openWheel(); });
   $("b-spin").addEventListener("click", spin);
@@ -669,11 +705,11 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--gold-soft);outl
   state.token = read(TOKEN_KEY);
   // Client qui avait l'ancienne carte sur ce téléphone : on retrouve son numéro et on ouvre sa nouvelle carte directement.
   var oldTel = read("phenoFidTel") || read("phenoClientTel") || read("pheno_client_tel");
-  if (state.token) enterCard();
+  if (state.token) goHome();
   else if (oldTel) {
     show("v-loading");
     db.rpc("card_open", { p_salon: SALON, p_phone: oldTel, p_name: null }).then(function (r) {
-      if (r && r.data && r.data.ok) { state.token = r.data.token; store(TOKEN_KEY, r.data.token); enterCard(); }
+      if (r && r.data && r.data.ok) { state.token = r.data.token; store(TOKEN_KEY, r.data.token); goHome(); }
       else { $("i-phone").value = oldTel; show("v-welcome"); }
     }, function () { $("i-phone").value = oldTel; show("v-welcome"); });
   }
