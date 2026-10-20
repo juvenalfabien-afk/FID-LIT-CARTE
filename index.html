@@ -92,6 +92,8 @@ a.btn{text-decoration:none;box-sizing:border-box}
 .stamp{aspect-ratio:1;border-radius:50%;display:grid;place-items:center;border:2px dashed rgba(201,168,76,.35);color:rgba(201,168,76,.35);position:relative}
 .stamp svg{width:46%;height:46%}
 .stamp.on{border:2px solid var(--gold);background:radial-gradient(circle at 35% 30%,#E2C06A,#B08F3C 70%);color:var(--ink);box-shadow:0 6px 16px rgba(201,168,76,.3)}
+.stamp .wheelmark{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:var(--gold-grad,#C9A84C);color:#0B1629;display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.35)}.stamp .wheelmark svg{width:14px;height:14px}
+.rulebar{margin:8px 0 0;text-align:center;font-size:13px;color:rgba(240,235,225,.7)}
 .stamp.gift{border-style:solid;border-color:rgba(226,192,106,.6);color:var(--gold-soft)}
 .stamp.gift.ready{background:var(--gold-grad);color:var(--ink);animation:pulse 1.6s ease-in-out infinite}
 .stamp .n{position:absolute;bottom:-17px;font-size:10px;color:var(--faint)}
@@ -243,6 +245,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
           <div class="stamps" id="c-stamps"></div>
           <div class="progress"><i id="c-progress" style="width:0"></i></div>
           <p class="next" id="c-next"></p>
+          <p class="rulebar" id="c-rule">9 coupes = la 10<sup>e</sup> offerte · 🎡 roue aux cases 3 et 6</p>
         </article>
 
         <button class="spin-cta" id="b-spin-open" type="button" hidden>
@@ -549,6 +552,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
   }
 
   /* ================= AFFICHAGE CARTE ================= */
+  var WHEEL_MINI = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4"/></svg>';
   var SCISSORS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/></svg>';
   var GIFT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M20 12v9H4v-9M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7z"/></svg>';
   var CUP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M17 8h1a4 4 0 1 1 0 8h-1M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8zM6 1v3M10 1v3M14 1v3"/></svg>';
@@ -576,7 +580,8 @@ a.btn{text-decoration:none;box-sizing:border-box}
         html += '<div class="stamp gift' + (hasCoupe ? " ready" : "") + '" title="Coupe offerte">' + GIFT + '<span class="n">Offerte</span></div>';
       } else {
         var on = i <= s, isNew = justChanged && on && i > (state.lastStamps || 0);
-        html += '<div class="stamp' + (on ? " on" : "") + (isNew ? " new" : "") + '">' + SCISSORS + '<span class="n">' + i + '</span></div>';
+        var wheelHere = (d.salon && Array.isArray(d.salon.wheel_at) ? d.salon.wheel_at : [3, 6]).indexOf(i) >= 0;
+        html += '<div class="stamp' + (on ? " on" : "") + (isNew ? " new" : "") + '"' + (wheelHere ? ' title="Tour de roue à cette case"' : '') + '>' + SCISSORS + '<span class="n">' + i + '</span>' + (wheelHere ? '<span class="wheelmark" aria-label="Roue">' + WHEEL_MINI + '</span>' : '') + '</div>';
       }
     }
     $("c-stamps").innerHTML = html;
@@ -584,7 +589,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
     var left = paid - s;
     $("c-next").textContent = hasCoupe ? "Ta carte est pleine : ta prochaine coupe est offerte !"
       : left === 1 ? "Plus qu'une coupe avant ta coupe offerte."
-      : "Encore " + Math.max(left, 0) + " coupes avant ta coupe offerte.";
+      : "Encore " + Math.max(left, 0) + " coupes avant ta " + size + "e coupe offerte.";
 
     // Roue
     var tk = d.card.wheel_tokens;
@@ -645,7 +650,10 @@ a.btn{text-decoration:none;box-sizing:border-box}
     var changed = prev && r.data.card.stamps > prev.card.stamps;
     render(changed);
     if (prev && changed && !changedCheck) { Sound.stamp(); toast("Nouveau tampon ajouté !"); }
-    if (prev && r.data.card.wheel_tokens > prev.card.wheel_tokens && !state.spinning && $("o-wheel").hidden) toast("Tu as gagné un tour de roue !");
+    if (prev && r.data.card.wheel_tokens > prev.card.wheel_tokens && !state.spinning && $("o-wheel").hidden) {
+      toast("Tu as gagné un tour de roue !");
+      if (!$("v-card").hidden) setTimeout(openWheel, 900);
+    }
     state.lastStamps = r.data.card.stamps;
   }
 
