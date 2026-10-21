@@ -178,6 +178,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
 @keyframes feteSpin{from{transform:rotate(-200deg) scale(.4)}to{transform:none}}
 @media (prefers-reduced-motion:reduce){.fete .fbox,.fete img{animation:none}}
 </style>
+<script>(function(){try{var sa=(window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone;if(sa&&!/carte|t=/.test(location.hash))location.replace("https://phenoandco-carte.netlify.app/");}catch(e){}})();</script>
 </head>
 <body>
 <div class="wrap">
@@ -186,6 +187,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
 
   <!-- Accueil : première ouverture -->
   <section id="v-welcome" class="welcome" hidden>
+    <a href="https://phenoandco-carte.netlify.app/" class="icon-btn back" style="align-self:flex-start;text-decoration:none">‹ Accueil</a>
     <img class="logo" src="logo.png" alt="Pheno &amp; Co Barbershop">
     <h1>Ta carte de fidélité, direct dans ta poche</h1>
     <p>Tape ton numéro de téléphone : ta carte s'ouvre, et ton téléphone s'en souviendra la prochaine fois.</p>
@@ -362,6 +364,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
 
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   function firstName(n) { n = String(n || "").trim(); return n ? n.split(/\s+/)[0] : ""; }
+  function fmtWhen(iso) { try { var d = new Date(iso); return d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }) + " à " + d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } }
   function fmtDate(iso) { try { return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }); } catch (e) { return ""; } }
   function daysLeft(iso) { return Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000); }
 
@@ -629,7 +632,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
       if (h.kind === "wheel_spin") t = det.prize === "stamp" ? "Roue : +1 tampon" : det.prize === "boisson" ? "Roue : boisson offerte" : "Roue : pas de chance";
       if (h.kind === "reward" && det.etat) t = "Coupe offerte expirée";
       if (h.kind === "redeem") t = det.type === "coupe" ? "Coupe offerte utilisée" : "Cadeau utilisé";
-      return "<li><span>" + esc(t) + '</span><span class="d">' + fmtDate(h.at) + "</span></li>";
+      return "<li><span>" + esc(t) + '</span><span class="d">' + fmtWhen(h.at) + "</span></li>";
     });
     $("c-hist").innerHTML = items.length ? items.join("") : '<li><span class="empty">Ton historique apparaîtra ici.</span></li>';
   }
@@ -641,7 +644,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
     catch (e) { box.textContent = "QR indisponible"; }
   }
 
-  function setupInstall() {
+  function setupInstall() { return; // l'application à installer est le hub, pas la carte seule
     var standalone = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone;
     if (standalone || read("pnc_install_ok")) { $("c-install").hidden = true; return; }
     var ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -740,7 +743,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
   $("b-logout").addEventListener("click", switchNumber);
   $("b-home-switch").addEventListener("click", switchNumber);
   $("b-home-card").addEventListener("click", function () { Sound.unlock(); enterCard(); });
-  $("b-back").addEventListener("click", goHome);
+  $("b-back").addEventListener("click", function () { location.href = "https://phenoandco-carte.netlify.app/"; });
   $("b-book-back").addEventListener("click", goHome);
   $("b-home-book").addEventListener("click", function () {
     var f = $("book-frame");
@@ -769,11 +772,11 @@ a.btn{text-decoration:none;box-sizing:border-box}
   state.token = read(TOKEN_KEY);
   // Client qui avait l'ancienne carte sur ce téléphone : on retrouve son numéro et on ouvre sa nouvelle carte directement.
   var oldTel = read("phenoFidTel") || read("phenoClientTel") || read("pheno_client_tel") || read("clientTel");
-  if (state.token) goHome();
+  if (state.token) enterCard();
   else if (oldTel) {
     show("v-loading");
     db.rpc("card_open", { p_salon: SALON, p_phone: oldTel, p_name: null }).then(function (r) {
-      if (r && r.data && r.data.ok) { state.token = r.data.token; store(TOKEN_KEY, r.data.token); goHome(); }
+      if (r && r.data && r.data.ok) { state.token = r.data.token; store(TOKEN_KEY, r.data.token); enterCard(); }
       else { $("i-phone").value = oldTel; show("v-welcome"); }
     }, function () { $("i-phone").value = oldTel; show("v-welcome"); });
   }
