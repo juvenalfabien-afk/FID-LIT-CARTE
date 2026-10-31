@@ -187,6 +187,8 @@ a.btn{text-decoration:none;box-sizing:border-box}
 .rdv-actions{display:grid;gap:10px;margin-top:16px}
 .rdv .btn{border-radius:999px;letter-spacing:.12em;text-transform:uppercase;font-size:13.5px}
 .rdv-note{margin:12px 0 0;font-size:12px;color:var(--faint)}
+.rdv-cal{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rdv .rdv-cal .btn{font-size:12px;letter-spacing:.06em;padding:14px 8px}
 .rdv-more{list-style:none;margin:16px 0 0;padding:12px 0 0;border-top:1px solid rgba(255,255,255,.08);display:grid;gap:8px;text-align:left}
 .rdv-more li{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px}
 .rdv-more .d{color:var(--faint);font-size:12.5px}
@@ -759,29 +761,17 @@ a.btn{text-decoration:none;box-sizing:border-box}
   function icsStamp(iso) { return new Date(iso).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, ""); }
   function isIOS() { return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); }
 
-  function addToAgenda(r) {
+  function googleUrl(r) {
     var addr = (rdvState.data && rdvState.data.address) || "18 rue d'Alger, Montpellier";
     var end = r.ends_at || new Date(new Date(r.starts_at).getTime() + 30 * 60000).toISOString();
-    var title = "Pheno & Co · " + (r.label || "Rendez-vous");
-    if (isIOS()) {
-      var ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//PhenoCo//RDV//FR", "BEGIN:VEVENT",
-        "UID:" + r.id + "@phenoandco", "DTSTAMP:" + icsStamp(new Date().toISOString()),
-        "DTSTART:" + icsStamp(r.starts_at), "DTEND:" + icsStamp(end),
-        "SUMMARY:" + title.replace(/[,;]/g, " "), "LOCATION:" + addr.replace(/[,;]/g, " "),
-        "BEGIN:VALARM", "TRIGGER:-PT2H", "ACTION:DISPLAY", "DESCRIPTION:Rendez-vous Pheno & Co", "END:VALARM",
-        "END:VEVENT", "END:VCALENDAR"].join("\r\n");
-      var a = document.createElement("a");
-      a.href = "data:text/calendar;charset=utf-8," + encodeURIComponent(ics);
-      a.download = "rdv-pheno-and-co.ics";
-      document.body.appendChild(a); a.click(); a.remove();
-      return;
-    }
-    var url = "https://calendar.google.com/calendar/render?action=TEMPLATE"
-      + "&text=" + encodeURIComponent(title)
+    return "https://calendar.google.com/calendar/render?action=TEMPLATE"
+      + "&text=" + encodeURIComponent("Pheno & Co · " + (r.label || "Rendez-vous"))
       + "&dates=" + icsStamp(r.starts_at) + "/" + icsStamp(end)
       + "&location=" + encodeURIComponent(addr)
       + "&details=" + encodeURIComponent("Rendez-vous chez Pheno & Co Barbershop.");
-    window.open(url, "_blank", "noopener");
+  }
+  function iphoneUrl(r) {
+    return SUPABASE_URL + "/functions/v1/rdv-ics?t=" + encodeURIComponent(state.token) + "&id=" + encodeURIComponent(r.id);
   }
 
   function openBooking() {
@@ -800,7 +790,9 @@ a.btn{text-decoration:none;box-sizing:border-box}
       $("rdv-kicker").textContent = "Mon prochain rendez-vous";
       html += '<p class="rdv-when">' + esc(fmtLong(r.starts_at)) + '</p><div class="rdv-line"></div>'
         + '<p class="rdv-what">' + esc(r.label) + '</p><div class="rdv-actions">'
-        + '<button class="btn btn-gold" type="button" data-agenda="' + esc(r.id) + '">Ajouter à mon agenda</button>';
+        + '<p class="rdv-note" style="margin:0">Ajouter à mon agenda</p><div class="rdv-cal">'
+        + '<a class="btn btn-gold" href="' + esc(googleUrl(r)) + '" target="_blank" rel="noopener">Google Agenda</a>'
+        + '<a class="btn btn-gold" href="' + esc(iphoneUrl(r)) + '">Calendrier iPhone</a></div>';
       if (r.can_cancel) {
         html += '<button class="btn btn-ghost" type="button" data-cancel="' + esc(r.id) + '">Annuler ou déplacer</button></div>'
           + '<p class="rdv-note">Modifiable jusqu\'à la veille, 23h59.</p>';
@@ -870,9 +862,8 @@ a.btn{text-decoration:none;box-sizing:border-box}
   }
 
   $("rdv-body").addEventListener("click", function (e) {
-    var t = e.target.closest("[data-agenda],[data-cancel],[data-book]"); if (!t) return;
-    if (t.hasAttribute("data-agenda")) { var r = findRdv(t.getAttribute("data-agenda")); if (r) addToAgenda(r); }
-    else if (t.hasAttribute("data-cancel")) openCancel(t.getAttribute("data-cancel"));
+    var t = e.target.closest("[data-cancel],[data-book]"); if (!t) return;
+    if (t.hasAttribute("data-cancel")) openCancel(t.getAttribute("data-cancel"));
     else openBooking();
   });
   $("b-cx-yes").addEventListener("click", confirmCancel);
