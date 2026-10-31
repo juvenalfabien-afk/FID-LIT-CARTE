@@ -177,6 +177,29 @@ a.btn{text-decoration:none;box-sizing:border-box}
 @keyframes fetePop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
 @keyframes feteSpin{from{transform:rotate(-200deg) scale(.4)}to{transform:none}}
 @media (prefers-reduced-motion:reduce){.fete .fbox,.fete img{animation:none}}
+
+/* Rendez-vous */
+.rdv{border:1px solid rgba(201,168,76,.45);text-align:center}
+.rdv .kicker{font-size:11.5px;letter-spacing:.2em}
+.rdv-when{font-family:var(--font-display);font-size:24px;line-height:1.2;margin:10px 0 0;color:var(--cream);text-wrap:balance}
+.rdv-line{width:90px;height:1px;background:var(--gold);opacity:.6;margin:10px auto 12px}
+.rdv-what{margin:0;color:var(--muted);font-size:14.5px}
+.rdv-actions{display:grid;gap:10px;margin-top:16px}
+.rdv .btn{border-radius:999px;letter-spacing:.12em;text-transform:uppercase;font-size:13.5px}
+.rdv-note{margin:12px 0 0;font-size:12px;color:var(--faint)}
+.rdv-cal{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rdv .rdv-cal .btn{font-size:12px;letter-spacing:.06em;padding:14px 8px}
+.rdv-more{list-style:none;margin:16px 0 0;padding:12px 0 0;border-top:1px solid rgba(255,255,255,.08);display:grid;gap:8px;text-align:left}
+.rdv-more li{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px}
+.rdv-more .d{color:var(--faint);font-size:12.5px}
+.rdv-past{list-style:none;margin:14px 0 0;padding:12px 0 0;border-top:1px solid rgba(255,255,255,.08);display:grid;gap:6px;text-align:left}
+.rdv-past li{display:flex;justify-content:space-between;gap:10px;font-size:13.5px;color:var(--muted)}
+.rdv-past .x{color:var(--faint);text-decoration:line-through}
+.rdv-past .d{color:var(--faint);font-size:12.5px;white-space:nowrap}
+.btn-cancel{background:transparent;color:#F0B4B4;border:1px solid #C25B5B}
+.cbox h3{font-family:var(--font-display);font-size:24px;margin:0 0 4px}
+.cbox p{margin:0;color:var(--muted)}
+.cbox .rdv-actions{margin-top:18px}
 </style>
 <script>(function(){try{var sa=(window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone;if(sa&&!/carte|t=/.test(location.hash))location.replace("https://phenoandco-carte.netlify.app/");}catch(e){}})();</script>
 </head>
@@ -261,6 +284,11 @@ a.btn{text-decoration:none;box-sizing:border-box}
           <p class="rulebar" id="c-rule">9 coupes = la 10<sup>e</sup> offerte · 🎡 roue aux cases 3 et 6</p>
         </article>
 
+
+        <article class="panel rdv" id="c-rdv" aria-label="Mes rendez-vous" hidden>
+          <p class="kicker" id="rdv-kicker">Mon prochain rendez-vous</p>
+          <div id="rdv-body"></div>
+        </article>
         <button class="spin-cta" id="b-spin-open" type="button" hidden>
           <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M20 2v36M2 20h36M7.3 7.3l25.4 25.4M32.7 7.3 7.3 32.7" stroke="currentColor" stroke-width="2"/><circle cx="20" cy="20" r="5" fill="currentColor"/></svg>
           <div><b id="spin-cta-title">Tu as un tour de roue</b><span>Appuie pour tenter ta chance</span></div>
@@ -321,6 +349,24 @@ a.btn{text-decoration:none;box-sizing:border-box}
   </div>
 </div>
 
+
+<!-- Annulation de rendez-vous -->
+<div class="overlay" id="o-cancel" hidden role="dialog" aria-modal="true" aria-labelledby="cx-title">
+  <div class="wheel-box cbox">
+    <h3 id="cx-title">Annuler ce rendez-vous ?</h3>
+    <div class="rdv-line"></div>
+    <p id="cx-text"></p>
+    <p class="err" id="cx-err" role="alert" style="margin-top:10px"></p>
+    <div class="rdv-actions" id="cx-actions">
+      <button class="btn btn-cancel" id="b-cx-yes" type="button">Oui, annuler</button>
+      <button class="btn btn-ghost" id="b-cx-no" type="button">Garder mon rendez-vous</button>
+    </div>
+    <div class="rdv-actions" id="cx-done" hidden>
+      <button class="btn btn-gold" id="b-cx-rebook" type="button">Reprendre un rendez-vous</button>
+      <button class="btn btn-ghost" id="b-cx-close" type="button">Fermer</button>
+    </div>
+  </div>
+</div>
 <canvas id="confetti"></canvas>
 <div class="toast" id="toast" hidden role="status"></div>
 
@@ -699,10 +745,137 @@ a.btn{text-decoration:none;box-sizing:border-box}
     maybeCelebrate();
   }
 
+
+  /* ================= RENDEZ-VOUS ================= */
+  var WA_SALON = "33769432605";
+  var BOOK_URL = "https://phenoandco.netlify.app/";
+  var rdvState = { data: null, cancelId: null };
+
+  function fmtLong(iso) {
+    try {
+      var d = new Date(iso);
+      var day = d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+      return day.charAt(0).toUpperCase() + day.slice(1) + " · " + d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }).replace(":", "h");
+    } catch (e) { return ""; }
+  }
+  function icsStamp(iso) { return new Date(iso).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, ""); }
+  function isIOS() { return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); }
+
+  function googleUrl(r) {
+    var addr = (rdvState.data && rdvState.data.address) || "18 rue d'Alger, Montpellier";
+    var end = r.ends_at || new Date(new Date(r.starts_at).getTime() + 30 * 60000).toISOString();
+    return "https://calendar.google.com/calendar/render?action=TEMPLATE"
+      + "&text=" + encodeURIComponent("Pheno & Co · " + (r.label || "Rendez-vous"))
+      + "&dates=" + icsStamp(r.starts_at) + "/" + icsStamp(end)
+      + "&location=" + encodeURIComponent(addr)
+      + "&details=" + encodeURIComponent("Rendez-vous chez Pheno & Co Barbershop.");
+  }
+  function iphoneUrl(r) {
+    return SUPABASE_URL + "/functions/v1/rdv-ics?t=" + encodeURIComponent(state.token) + "&id=" + encodeURIComponent(r.id);
+  }
+
+  function openBooking() {
+    var f = $("book-frame");
+    if (!f.getAttribute("src")) f.setAttribute("src", BOOK_URL);
+    show("v-book");
+  }
+
+  function renderRdv() {
+    var d = rdvState.data, box = $("c-rdv");
+    if (!d) { box.hidden = true; return; }
+    box.hidden = false;
+    var up = d.upcoming || [], html = "";
+    if (up.length) {
+      var r = up[0];
+      $("rdv-kicker").textContent = "Mon prochain rendez-vous";
+      html += '<p class="rdv-when">' + esc(fmtLong(r.starts_at)) + '</p><div class="rdv-line"></div>'
+        + '<p class="rdv-what">' + esc(r.label) + '</p><div class="rdv-actions">'
+        + '<p class="rdv-note" style="margin:0">Ajouter à mon agenda</p><div class="rdv-cal">'
+        + '<a class="btn btn-gold" href="' + esc(googleUrl(r)) + '" target="_blank" rel="noopener">Google Agenda</a>'
+        + '<a class="btn btn-gold" href="' + esc(iphoneUrl(r)) + '">Calendrier iPhone</a></div>';
+      if (r.can_cancel) {
+        html += '<button class="btn btn-ghost" type="button" data-cancel="' + esc(r.id) + '">Annuler ou déplacer</button></div>'
+          + '<p class="rdv-note">Modifiable jusqu\'à la veille, 23h59.</p>';
+      } else {
+        html += '<a class="btn btn-ghost" href="https://wa.me/' + WA_SALON + '" target="_blank" rel="noopener">Prévenir le salon</a></div>'
+          + '<p class="rdv-note">C\'est pour aujourd\'hui : en cas d\'empêchement, préviens-nous sur WhatsApp.</p>';
+      }
+      if (up.length > 1) {
+        html += '<ul class="rdv-more">' + up.slice(1).map(function (x) {
+          return '<li><span>' + esc(fmtWhen(x.starts_at)) + '<br><span class="d">' + esc(x.label) + '</span></span>'
+            + (x.can_cancel ? '<button type="button" class="linklike" data-cancel="' + esc(x.id) + '">Annuler</button>' : '') + '</li>';
+        }).join("") + '</ul>';
+      }
+    } else {
+      $("rdv-kicker").textContent = "Mes rendez-vous";
+      html += '<p class="rdv-when">Aucun rendez-vous prévu</p><div class="rdv-line"></div>'
+        + (d.last ? '<p class="rdv-what">Ta dernière prestation : ' + esc(d.last.label) + '</p>' : '<p class="rdv-what">Réserve ton prochain passage en quelques clics.</p>')
+        + '<div class="rdv-actions"><button class="btn btn-gold" type="button" data-book="1">Prendre rendez-vous</button></div>';
+    }
+    var past = d.past || [];
+    if (past.length) {
+      html += '<ul class="rdv-past">' + past.slice(0, 4).map(function (p) {
+        var c = p.status === "cancelled";
+        return '<li><span class="' + (c ? "x" : "") + '">' + esc(p.label) + (c ? " (annulé)" : "") + '</span><span class="d">' + esc(fmtDate(p.starts_at)) + '</span></li>';
+      }).join("") + '</ul>';
+    }
+    $("rdv-body").innerHTML = html;
+  }
+
+  async function loadRdv() {
+    if (!state.token) return;
+    var r;
+    try { r = await db.rpc("card_rdv", { p_token: state.token }); } catch (e) { return; }
+    if (r.error || !r.data || !r.data.ok) return;
+    rdvState.data = r.data;
+    renderRdv();
+  }
+
+  function findRdv(id) { var up = (rdvState.data && rdvState.data.upcoming) || []; for (var i = 0; i < up.length; i++) if (up[i].id === id) return up[i]; return null; }
+
+  function openCancel(id) {
+    var r = findRdv(id); if (!r) return;
+    rdvState.cancelId = id;
+    $("cx-title").textContent = "Annuler ce rendez-vous ?";
+    $("cx-text").textContent = fmtLong(r.starts_at) + " · " + r.label;
+    $("cx-err").textContent = "";
+    $("cx-actions").hidden = false; $("cx-done").hidden = true;
+    $("b-cx-yes").disabled = false; $("b-cx-yes").textContent = "Oui, annuler";
+    $("o-cancel").hidden = false;
+  }
+  function closeCancel() { $("o-cancel").hidden = true; rdvState.cancelId = null; }
+
+  async function confirmCancel() {
+    var btn = $("b-cx-yes"); btn.disabled = true; btn.textContent = "Annulation…";
+    var r;
+    try { r = await db.rpc("card_rdv_cancel", { p_token: state.token, p_id: rdvState.cancelId }); } catch (e) { r = { error: e }; }
+    if (r.error || !r.data) { $("cx-err").textContent = "Connexion impossible. Réessaie."; btn.disabled = false; btn.textContent = "Oui, annuler"; return; }
+    if (!r.data.ok) {
+      var m = { trop_tard: "Il est trop tard pour annuler en ligne. Préviens-nous sur WhatsApp.", deja: "Ce rendez-vous est déjà annulé." };
+      $("cx-err").textContent = m[r.data.error] || "Impossible d'annuler pour le moment.";
+      btn.disabled = false; btn.textContent = "Oui, annuler"; loadRdv(); return;
+    }
+    $("cx-title").textContent = "Rendez-vous annulé";
+    $("cx-text").textContent = "Le créneau est libéré. Merci de nous avoir prévenus.";
+    $("cx-actions").hidden = true; $("cx-done").hidden = false;
+    loadRdv();
+  }
+
+  $("rdv-body").addEventListener("click", function (e) {
+    var t = e.target.closest("[data-cancel],[data-book]"); if (!t) return;
+    if (t.hasAttribute("data-cancel")) openCancel(t.getAttribute("data-cancel"));
+    else openBooking();
+  });
+  $("b-cx-yes").addEventListener("click", confirmCancel);
+  $("b-cx-no").addEventListener("click", closeCancel);
+  $("b-cx-close").addEventListener("click", closeCancel);
+  $("b-cx-rebook").addEventListener("click", function () { closeCancel(); openBooking(); });
+  setInterval(function () { if (state.token && !document.hidden && !$("v-card").hidden && $("o-cancel").hidden) loadRdv(); }, 30000);
+
   async function enterCard() {
     if (!state.data) { show("v-loading"); await loadCard(true); }
     if (!state.data) return;
-    show("v-card"); renderQR(); setupInstall(); maybeCelebrate();
+    show("v-card"); renderQR(); setupInstall(); maybeCelebrate(); loadRdv();
     if (state.data.card.wheel_tokens > 0) setTimeout(openWheel, 700);
   }
 
