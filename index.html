@@ -774,9 +774,11 @@ a.btn{text-decoration:none;box-sizing:border-box}
     return SUPABASE_URL + "/functions/v1/rdv-ics?t=" + encodeURIComponent(state.token) + "&id=" + encodeURIComponent(r.id);
   }
 
-  function openBooking() {
+  function openBooking(again) {
     var f = $("book-frame");
-    if (!f.getAttribute("src")) f.setAttribute("src", BOOK_URL);
+    // « Refaire la même » : le site reconnaît le client par sa carte et ouvre directement le choix du créneau
+    var url = BOOK_URL + (state.token ? "#me=" + encodeURIComponent(state.token) + (again ? "&go=1" : "") : "");
+    if (f.getAttribute("src") !== url) f.setAttribute("src", url);
     show("v-book");
   }
 
@@ -810,7 +812,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
       $("rdv-kicker").textContent = "Mes rendez-vous";
       html += '<p class="rdv-when">Aucun rendez-vous prévu</p><div class="rdv-line"></div>'
         + (d.last ? '<p class="rdv-what">Ta dernière prestation : ' + esc(d.last.label) + '</p>' : '<p class="rdv-what">Réserve ton prochain passage en quelques clics.</p>')
-        + '<div class="rdv-actions"><button class="btn btn-gold" type="button" data-book="1">Prendre rendez-vous</button></div>';
+        + '<div class="rdv-actions">' + (d.last ? '<button class="btn btn-gold" type="button" data-book="again">Refaire la même</button><button class="btn btn-ghost" type="button" data-book="1">Autre prestation</button>' : '<button class="btn btn-gold" type="button" data-book="1">Prendre rendez-vous</button>') + '</div>';
     }
     var past = d.past || [];
     if (past.length) {
@@ -864,7 +866,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
   $("rdv-body").addEventListener("click", function (e) {
     var t = e.target.closest("[data-cancel],[data-book]"); if (!t) return;
     if (t.hasAttribute("data-cancel")) openCancel(t.getAttribute("data-cancel"));
-    else openBooking();
+    else openBooking(t.getAttribute("data-book") === "again");
   });
   $("b-cx-yes").addEventListener("click", confirmCancel);
   $("b-cx-no").addEventListener("click", closeCancel);
@@ -960,7 +962,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
 // Mise a jour automatique : a chaque ouverture ou retour sur la page, verifie s'il existe une nouvelle
 // version publiee et recharge. Changer APP_VERSION a chaque modification.
 (function () {
-  var APP_VERSION = '2026-11-01-a';
+  var APP_VERSION = '2026-11-01-r';
   var busy = false, last = 0;
   function check() {
     var now = Date.now();
