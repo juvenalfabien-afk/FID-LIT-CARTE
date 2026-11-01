@@ -956,5 +956,26 @@ a.btn{text-decoration:none;box-sizing:border-box}
   else show("v-welcome");
 })();
 </script>
+<script>
+// Mise a jour automatique : a chaque ouverture ou retour sur la page, verifie s'il existe une nouvelle
+// version publiee et recharge. Changer APP_VERSION a chaque modification.
+(function () {
+  var APP_VERSION = '2026-11-01-a';
+  var busy = false, last = 0;
+  function check() {
+    var now = Date.now();
+    if (busy || now - last < 20000) return;
+    busy = true; last = now;
+    fetch(location.pathname + '?check=' + now, { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
+      busy = false;
+      var m = t && t.match(/APP_VERSION = '([^']+)'/);
+      if (m && m[1] !== APP_VERSION) location.replace(location.pathname + '?v=' + encodeURIComponent(m[1]) + location.hash);
+    }, function () { busy = false; });
+  }
+  check();
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) check(); });
+  window.addEventListener('pageshow', function (e) { if (e.persisted) check(); });
+})();
+</script>
 </body>
 </html>
