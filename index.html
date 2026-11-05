@@ -200,33 +200,83 @@ a.btn{text-decoration:none;box-sizing:border-box}
 .cbox h3{font-family:var(--font-display);font-size:24px;margin:0 0 4px}
 .cbox p{margin:0;color:var(--muted)}
 .cbox .rdv-actions{margin-top:18px}
+/* Connexion + messagerie */
+.pin-in{letter-spacing:.6em!important;text-align:center;font-size:24px!important}
+.check{display:flex;gap:10px;align-items:flex-start;text-align:left;font-size:14px;color:var(--muted)}
+.check input{width:20px;height:20px;accent-color:var(--gold);margin-top:2px;flex-shrink:0}
+.mailbox{display:grid;gap:12px;text-align:center;padding:18px;border:1px solid rgba(201,168,76,.45);border-radius:var(--r-md);background:rgba(201,168,76,.08)}
+.msg-btn{position:relative}
+.dot{position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#E0605A;color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center}
+.ov-full{position:fixed;inset:0;z-index:55;background:var(--ink);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.ov-head{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.ov-head img{width:40px;height:40px}
+.ov-head b{font-family:var(--font-display);font-size:20px;display:block}
+.ov-head span{font-size:13px;color:var(--muted)}
+.msg-wrap{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px;max-width:760px;width:100%;margin:0 auto}
+.msg-note{background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.35);color:var(--gold-soft);border-radius:12px;padding:10px 12px;font-size:14px}
+.bub{max-width:88%;padding:11px 14px;border-radius:16px;background:var(--steel);border:1px solid var(--line);font-size:15px;line-height:1.45;white-space:pre-wrap;word-wrap:break-word}
+.bub.me{align-self:flex-end;background:var(--gold-grad);color:var(--ink);border-color:transparent}
+.bub small{display:block;margin-top:6px;font-size:12px;color:var(--faint)}
+.bub.me small{color:rgba(11,22,41,.65)}
+.bub .tg{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;margin-bottom:6px;background:rgba(201,168,76,.18);color:var(--gold-soft)}
+.quick{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.quick button{border:1px solid var(--gold);background:transparent;color:var(--gold-soft);border-radius:999px;padding:8px 12px;font-size:14px;font-weight:600}
+.msg-empty{color:var(--muted);text-align:center;padding:30px 10px}
+.msg-foot{border-top:1px solid var(--line);padding:10px 16px;max-width:760px;width:100%;margin:0 auto}
+.msg-compose{display:flex;gap:8px}
+.msg-compose textarea{flex:1;min-height:46px;max-height:120px;resize:none;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--coal);color:var(--cream);font:inherit;font-size:16px}
+.msg-compose button{width:auto;padding:0 16px}
+.msg-foot .check{margin-top:10px;font-size:13px}
+@media (max-width:480px){#v-card .top>div:not(.spacer){display:none}#v-card .top .icon-btn{padding-inline:10px}}
 </style>
-<script>(function(){try{var sa=(window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone;if(sa&&!/carte|t=/.test(location.hash))location.replace("https://phenoandco-carte.netlify.app/");}catch(e){}})();</script>
+<script>(function(){try{var sa=(window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone;if(sa&&!/carte|t=|m=|msg/.test(location.hash))location.replace("https://phenoandco-carte.netlify.app/");}catch(e){}})();</script>
 </head>
 <body>
 <div class="wrap">
 
   <div id="v-loading"><div class="spinner" aria-label="Chargement"></div></div>
 
-  <!-- Accueil : première ouverture -->
+  <!-- Accueil : connexion (numéro, puis code secret) -->
   <section id="v-welcome" class="welcome" hidden>
     <a href="https://phenoandco-carte.netlify.app/" class="icon-btn back" style="align-self:flex-start;text-decoration:none">‹ Accueil</a>
     <img class="logo" src="logo.png" alt="Pheno &amp; Co Barbershop">
-    <h1>Ta carte de fidélité, direct dans ta poche</h1>
-    <p>Tape ton numéro de téléphone : ta carte s'ouvre, et ton téléphone s'en souviendra la prochaine fois.</p>
+    <h1 id="w-title">Ta carte de fidélité, direct dans ta poche</h1>
+    <p id="w-text">Tape ton numéro de téléphone pour ouvrir ta carte.</p>
     <form id="f-open" class="welcome" style="margin:0;gap:14px" novalidate>
-      <div class="field">
+      <div class="field" id="fld-phone">
         <label for="i-phone">Ton numéro de téléphone</label>
         <input id="i-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="06 12 34 56 78" required>
       </div>
-      <div class="field" id="name-field" hidden>
+      <div class="field" id="fld-name" hidden>
         <label for="i-name">Ton prénom et ton nom</label>
         <input id="i-name" type="text" autocomplete="name" placeholder="Prénom Nom">
-        <span class="small">Première visite ? On crée ta carte.</span>
       </div>
+      <div class="field" id="fld-email" hidden>
+        <label for="i-email">Ton adresse e-mail</label>
+        <input id="i-email" type="email" inputmode="email" autocomplete="email" placeholder="prenom@exemple.fr">
+        <span class="small">Elle sert si tu oublies ton code : tu le refais toi-même en un clic.</span>
+      </div>
+      <div class="field" id="fld-pin" hidden>
+        <label for="i-pin">Ton code secret (4 chiffres)</label>
+        <input id="i-pin" class="pin-in" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="current-password" placeholder="••••">
+      </div>
+      <div class="field" id="fld-new" hidden>
+        <label for="i-pin1">Choisis ton code secret (4 chiffres)</label>
+        <input id="i-pin1" class="pin-in" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="new-password" placeholder="••••">
+        <label for="i-pin2">Retape-le pour confirmer</label>
+        <input id="i-pin2" class="pin-in" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="new-password" placeholder="••••">
+        <span class="small">Pas de 0000 ni de 1234. Comme un code de carte bancaire : facile à retenir pour toi, impossible à deviner.</span>
+      </div>
+      <label class="check" id="fld-consent" hidden><input type="checkbox" id="i-consent" checked> J'accepte de recevoir les annonces de PHENO&amp;CO (fermetures, nouveautés). Les messages sur mes rendez-vous arrivent toujours.</label>
       <p class="err" id="err-open" role="alert"></p>
-      <button class="btn btn-gold" id="b-open" type="submit">Ouvrir ma carte</button>
+      <button class="btn btn-gold" id="b-open" type="submit">Continuer</button>
+      <p class="small" id="w-links" hidden><button type="button" class="linklike" id="b-forgot">Code oublié ?</button> · <button type="button" class="linklike" id="b-other">Changer de numéro</button></p>
     </form>
+    <div class="mailbox" id="w-mailed" hidden>
+      <b style="font-size:18px">📩 Regarde tes e-mails</b>
+      <p id="w-mailed-text" style="margin:0"></p>
+      <button class="btn btn-ghost" id="b-mailed-back" type="button">Changer de numéro</button>
+    </div>
     <p class="small">Pheno &amp; Co Barbershop · 18 rue d'Alger, Montpellier</p>
   </section>
 
@@ -238,6 +288,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
     <p id="h-summary">Ta carte t'attend.</p>
     <div class="welcome" style="margin:0;gap:12px">
       <button class="btn btn-gold" id="b-home-card" type="button">Voir ma carte</button>
+      <button class="btn btn-ghost msg-btn" id="b-home-msg" type="button">Mes messages<span class="dot" id="dot-home" hidden></span></button>
       <button class="btn btn-ghost" id="b-home-book" type="button">Prendre rendez-vous</button>
     </div>
     <p class="small">Ce n'est pas toi ? <button type="button" id="b-home-switch" class="linklike">Changer de numéro</button></p>
@@ -265,6 +316,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
         <div class="addr">Barbershop · 18 rue d'Alger, Montpellier</div>
       </div>
       <div class="spacer"></div>
+      <button class="icon-btn msg-btn" id="b-msg" type="button">Messages<span class="dot" id="dot-card" hidden></span></button>
       <button class="icon-btn" id="b-sound" type="button" aria-pressed="true">Son : oui</button>
     </header>
 
@@ -367,6 +419,41 @@ a.btn{text-decoration:none;box-sizing:border-box}
     </div>
   </div>
 </div>
+<!-- Choix du code secret (clients de l'ancienne carte) -->
+<div class="overlay" id="o-setpin" hidden role="dialog" aria-modal="true" aria-labelledby="sp-title">
+  <form class="wheel-box cbox" id="f-setpin" novalidate style="text-align:left;display:grid;gap:12px">
+    <h3 id="sp-title" style="text-align:center">Protège ta carte</h3>
+    <p style="text-align:center">Nouveau : ta carte se protège avec un code secret à 4 chiffres. Personne d'autre ne pourra l'ouvrir ni lire tes messages.</p>
+    <div class="field"><label for="sp-pin1">Choisis ton code secret</label>
+      <input id="sp-pin1" class="pin-in" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="new-password" placeholder="••••"></div>
+    <div class="field"><label for="sp-pin2">Retape-le pour confirmer</label>
+      <input id="sp-pin2" class="pin-in" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="new-password" placeholder="••••"></div>
+    <div class="field" id="sp-email-f" hidden><label for="sp-email">Ton adresse e-mail</label>
+      <input id="sp-email" type="email" inputmode="email" autocomplete="email" placeholder="prenom@exemple.fr">
+      <span class="small">Elle sert si tu oublies ton code.</span></div>
+    <p class="small" id="sp-email-hint" hidden></p>
+    <p class="err" id="sp-err" role="alert"></p>
+    <button class="btn btn-gold" id="b-setpin" type="submit">Enregistrer mon code</button>
+  </form>
+</div>
+
+<!-- Messagerie -->
+<div class="ov-full" id="o-msg" hidden role="dialog" aria-modal="true" aria-labelledby="m-title">
+  <div class="ov-head">
+    <button class="icon-btn back" id="b-msg-close" type="button" aria-label="Fermer les messages">‹ Retour</button>
+    <img src="logo.png" alt="">
+    <div><b id="m-title">Messages</b><span>PHENO&amp;CO</span></div>
+  </div>
+  <div class="msg-wrap" id="m-list" aria-live="polite"></div>
+  <div class="msg-foot">
+    <div class="msg-compose" id="m-compose">
+      <textarea id="m-text" maxlength="500" placeholder="Écrire un petit message…" aria-label="Ton message"></textarea>
+      <button class="btn btn-gold" id="b-msg-send" type="button">Envoyer</button>
+    </div>
+    <p class="small" id="m-closed" hidden style="text-align:center;margin:6px 0 0">La messagerie est fermée pour le moment. Pour une urgence, appelle le salon.</p>
+    <label class="check"><input type="checkbox" id="m-consent"> J'accepte de recevoir les annonces de PHENO&amp;CO (fermetures, nouveautés).</label>
+  </div>
+</div>
 <canvas id="confetti"></canvas>
 <div class="toast" id="toast" hidden role="status"></div>
 
@@ -379,7 +466,9 @@ a.btn{text-decoration:none;box-sizing:border-box}
   var SUPABASE_URL = "https://ebqxrrnezngpvewvlupr.supabase.co";
   var SUPABASE_KEY = "sb_publishable_atOLxKckdSSkyMh8wu8R5A__-7ICqN_";
   var SALON = "phenoandco";
-  var TOKEN_KEY = "pnc_token";
+  var TOKEN_KEY = "pnc_token"; // ancienne carte (avant le code secret)
+  var KEY_KEY = "pnc_key";     // clé secrète de ce téléphone
+  var DEVICE = (navigator.userAgent || "").slice(0, 110);
   var db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
 
   // Les 8 cases de la roue, dans le même ordre que le tirage côté serveur.
@@ -395,7 +484,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
   ];
   var SEG_COLORS = ["#C9A84C", "#0E1B2E", "#E2C06A", "#15253E", "#B08F3C", "#0E1B2E", "#E2C06A", "#15253E"];
 
-  var state = { token: null, data: null, lastStamps: null, lastTokens: null, spinning: false, rotation: 0, soundOn: true };
+  var state = { key: null, token: null, data: null, lastStamps: null, lastTokens: null, spinning: false, rotation: 0, soundOn: true };
 
   function $(id) { return document.getElementById(id); }
   function show(id) { ["v-loading", "v-welcome", "v-home", "v-book", "v-card"].forEach(function (v) { $(v).hidden = v !== id; }); window.scrollTo(0, 0); }
@@ -573,7 +662,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
     $("b-spin").disabled = true; $("b-wheel-close").disabled = true; $("w-result").textContent = "";
     var res;
     try {
-      var r = await db.rpc("card_spin", { p_token: state.token });
+      var r = await db.rpc("card_spin_k", { p_key: state.key });
       if (r.error) throw r.error;
       res = r.data;
     } catch (e) { res = null; }
@@ -685,7 +774,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
 
   function renderQR() {
     var box = $("c-qr"); box.innerHTML = "";
-    var url = new URL("pro.html", location.href).href.split("#")[0] + "#c=" + state.token;
+    var url = new URL("pro.html", location.href).href.split("#")[0] + "#c=" + state.data.client.token;
     try { new QRCode(box, { text: url, width: 512, height: 512, colorDark: "#0B1629", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M }); }
     catch (e) { box.textContent = "QR indisponible"; }
   }
@@ -729,9 +818,9 @@ a.btn{text-decoration:none;box-sizing:border-box}
 
   async function loadCard(changedCheck) {
     var r;
-    try { r = await db.rpc("card_get", { p_token: state.token }); } catch (e) { r = { error: e }; }
+    try { r = await db.rpc("card_get_k", { p_key: state.key }); } catch (e) { r = { error: e }; }
     if (r.error) { if (!state.data) { toast("Connexion impossible. Vérifie ton réseau."); } return; }
-    if (!r.data || !r.data.ok) { store(TOKEN_KEY, null); state.token = null; state.data = null; show("v-welcome"); return; }
+    if (!r.data || !r.data.ok) { store(KEY_KEY, null); state.key = null; state.data = null; showAuth("phone"); return; }
     var prev = state.data;
     state.data = r.data;
     var changed = prev && r.data.card.stamps > prev.card.stamps;
@@ -742,6 +831,8 @@ a.btn{text-decoration:none;box-sizing:border-box}
       if (!$("v-card").hidden) setTimeout(openWheel, 900);
     }
     state.lastStamps = r.data.card.stamps;
+    updateBadges();
+    if (!r.data.me.pin) openSetPin();
     maybeCelebrate();
   }
 
@@ -771,13 +862,14 @@ a.btn{text-decoration:none;box-sizing:border-box}
       + "&details=" + encodeURIComponent("Rendez-vous chez Pheno & Co Barbershop.");
   }
   function iphoneUrl(r) {
-    return SUPABASE_URL + "/functions/v1/rdv-ics?t=" + encodeURIComponent(state.token) + "&id=" + encodeURIComponent(r.id);
+    return SUPABASE_URL + "/functions/v1/rdv-ics?t=" + encodeURIComponent(siteKey()) + "&id=" + encodeURIComponent(r.id);
   }
 
+  function siteKey() { return state.data && state.data.me ? state.data.me.site : null; }
   function openBooking(again) {
     var f = $("book-frame");
     // « Refaire la même » : le site reconnaît le client par sa carte et ouvre directement le choix du créneau
-    var url = BOOK_URL + (state.token ? "#me=" + encodeURIComponent(state.token) + (again ? "&go=1" : "") : "");
+    var url = BOOK_URL + (siteKey() ? "#me=" + encodeURIComponent(siteKey()) + (again ? "&go=1" : "") : "");
     if (f.getAttribute("src") !== url) f.setAttribute("src", url);
     show("v-book");
   }
@@ -825,9 +917,9 @@ a.btn{text-decoration:none;box-sizing:border-box}
   }
 
   async function loadRdv() {
-    if (!state.token) return;
+    if (!state.key) return;
     var r;
-    try { r = await db.rpc("card_rdv", { p_token: state.token }); } catch (e) { return; }
+    try { r = await db.rpc("card_rdv_k", { p_key: state.key }); } catch (e) { return; }
     if (r.error || !r.data || !r.data.ok) return;
     rdvState.data = r.data;
     renderRdv();
@@ -850,7 +942,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
   async function confirmCancel() {
     var btn = $("b-cx-yes"); btn.disabled = true; btn.textContent = "Annulation…";
     var r;
-    try { r = await db.rpc("card_rdv_cancel", { p_token: state.token, p_id: rdvState.cancelId }); } catch (e) { r = { error: e }; }
+    try { r = await db.rpc("card_rdv_cancel_k", { p_key: state.key, p_id: rdvState.cancelId }); } catch (e) { r = { error: e }; }
     if (r.error || !r.data) { $("cx-err").textContent = "Connexion impossible. Réessaie."; btn.disabled = false; btn.textContent = "Oui, annuler"; return; }
     if (!r.data.ok) {
       var m = { trop_tard: "Il est trop tard pour annuler en ligne. Préviens-nous sur WhatsApp.", deja: "Ce rendez-vous est déjà annulé." };
@@ -872,12 +964,13 @@ a.btn{text-decoration:none;box-sizing:border-box}
   $("b-cx-no").addEventListener("click", closeCancel);
   $("b-cx-close").addEventListener("click", closeCancel);
   $("b-cx-rebook").addEventListener("click", function () { closeCancel(); openBooking(); });
-  setInterval(function () { if (state.token && !document.hidden && !$("v-card").hidden && $("o-cancel").hidden) loadRdv(); }, 30000);
+  setInterval(function () { if (state.key && !document.hidden && !$("v-card").hidden && $("o-cancel").hidden) loadRdv(); }, 30000);
 
   async function enterCard() {
     if (!state.data) { show("v-loading"); await loadCard(true); }
     if (!state.data) return;
     show("v-card"); renderQR(); setupInstall(); maybeCelebrate(); loadRdv();
+    if (state.openMsg) { state.openMsg = false; openMsgs(); }
     if (state.data.card.wheel_tokens > 0) setTimeout(openWheel, 700);
   }
 
@@ -893,26 +986,207 @@ a.btn{text-decoration:none;box-sizing:border-box}
       : d.card.wheel_tokens > 0 ? s + " tampons sur " + paid + " · un tour de roue t'attend !"
       : s + " tampons sur " + paid + " · encore " + (paid - s) + " avant ta coupe offerte.";
   }
-  function switchNumber() { store(TOKEN_KEY, null); state.token = null; state.data = null; $("i-phone").value = ""; $("name-field").hidden = true; show("v-welcome"); }
+  function switchNumber() {
+    if (state.key) db.rpc("card_logout", { p_key: state.key }).then(function () {}, function () {});
+    store(KEY_KEY, null); store(TOKEN_KEY, null); state.key = null; state.data = null;
+    $("i-phone").value = ""; showAuth("phone");
+  }
 
-  /* ================= OUVERTURE ================= */
+  /* ================= CONNEXION ================= */
+  var auth = { mode: "phone", phone: "", link: null };
+  var MODES = {
+    phone:  { t: "Ta carte de fidélité, direct dans ta poche", p: "Tape ton numéro de téléphone pour ouvrir ta carte.", f: ["phone"], b: "Continuer" },
+    pin:    { t: "Bon retour !", p: "Tape ton code secret à 4 chiffres.", f: ["phone", "pin"], b: "Ouvrir ma carte", links: true },
+    signup: { t: "Créons ta carte", p: "Ce numéro n'a pas encore de carte. Il ne manque que quelques infos.", f: ["phone", "name", "email", "new", "consent"], b: "Créer ma carte" },
+    setup:  { t: "Protège ta carte", p: "Nouveau : ta carte se protège avec un code secret. Choisis-le et ajoute ton e-mail.", f: ["phone", "email", "new"], b: "Enregistrer et ouvrir" },
+    reset:  { t: "Nouveau code secret", p: "Choisis ton nouveau code à 4 chiffres.", f: ["new"], b: "Enregistrer mon code" }
+  };
+  function showAuth(mode, msg) {
+    auth.mode = mode; var m = MODES[mode];
+    $("w-title").textContent = m.t; $("w-text").textContent = m.p;
+    ["phone", "name", "email", "pin", "new", "consent"].forEach(function (f) { $("fld-" + f).hidden = m.f.indexOf(f) < 0; });
+    $("i-phone").readOnly = mode !== "phone" && mode !== "signup";
+    $("w-links").hidden = !m.links; $("f-open").hidden = false; $("w-mailed").hidden = true;
+    $("b-open").textContent = m.b; $("b-open").disabled = false; $("err-open").textContent = msg || "";
+    ["i-pin", "i-pin1", "i-pin2"].forEach(function (id) { $(id).value = ""; });
+    show("v-welcome");
+    var focus = mode === "pin" ? "i-pin" : mode === "reset" ? "i-pin1" : mode === "signup" ? "i-name" : mode === "setup" ? "i-email" : "i-phone";
+    setTimeout(function () { try { $(focus).focus(); } catch (e) {} }, 50);
+  }
+  function showMailed(text) {
+    $("f-open").hidden = true; $("w-mailed").hidden = false; $("w-mailed-text").textContent = text;
+    $("w-title").textContent = "Presque fini"; $("w-text").textContent = "";
+    show("v-welcome");
+  }
+  function pinPair(a, b, err) {
+    if (!/^[0-9]{4}$/.test(a)) { err.textContent = "Ton code doit faire exactement 4 chiffres."; return false; }
+    if (["0000","1111","2222","3333","4444","5555","6666","7777","8888","9999","1234","4321"].indexOf(a) >= 0) { err.textContent = "Ce code est trop facile à deviner. Choisis-en un autre."; return false; }
+    if (a !== b) { err.textContent = "Les deux codes ne sont pas pareils. Retape-les."; return false; }
+    return true;
+  }
+  function mailOk(v) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v); }
+  async function opened(key) {
+    state.key = key; store(KEY_KEY, key); store(TOKEN_KEY, null); state.data = null;
+    await enterCard();
+  }
+  var ERR = { phone: "Ce numéro ne semble pas valide. Vérifie-le.", email: "Cette adresse e-mail ne semble pas valide.", pin: "Ce code est trop facile à deviner. Choisis-en un autre.",
+              name: "Entre ton prénom et ton nom.", existe: "Ce numéro a déjà une carte.", expire: "Ce lien a expiré. Demande un nouveau lien avec « Code oublié ? ».",
+              refuse: "Impossible ici : utilise « Code oublié ? »." };
+
   $("f-open").addEventListener("submit", async function (e) {
     e.preventDefault();
-    var phone = $("i-phone").value.trim(), name = $("i-name").value.trim(), err = $("err-open"), btn = $("b-open");
+    var err = $("err-open"), btn = $("b-open"), phone = $("i-phone").value.trim();
     err.textContent = "";
-    if (phone.replace(/\D/g, "").length < 9) { err.textContent = "Entre ton numéro complet, par exemple 06 12 34 56 78."; return; }
-    if (!$("name-field").hidden && name.length < 2) { err.textContent = "Entre ton prénom et ton nom pour créer ta carte."; return; }
-    btn.disabled = true; btn.textContent = "Ouverture…";
+    if (auth.mode !== "reset" && phone.replace(/\D/g, "").length < 9) { err.textContent = "Entre ton numéro complet, par exemple 06 12 34 56 78."; return; }
+    var p1 = $("i-pin1").value, p2 = $("i-pin2").value, email = $("i-email").value.trim(), name = $("i-name").value.trim();
+    if (auth.mode === "signup" && name.length < 2) { err.textContent = ERR.name; return; }
+    if ((auth.mode === "signup" || auth.mode === "setup") && !mailOk(email)) { err.textContent = ERR.email; return; }
+    if ((auth.mode === "signup" || auth.mode === "setup" || auth.mode === "reset") && !pinPair(p1, p2, err)) return;
+    if (auth.mode === "pin" && !/^[0-9]{4}$/.test($("i-pin").value)) { err.textContent = "Tape les 4 chiffres de ton code."; return; }
+    var label = btn.textContent; btn.disabled = true; btn.textContent = "Un instant…";
     try {
-      var r = await db.rpc("card_open", { p_salon: SALON, p_phone: phone, p_name: $("name-field").hidden ? null : name });
-      if (r.error) throw r.error;
-      var d = r.data;
-      if (d.ok) { state.token = d.token; store(TOKEN_KEY, d.token); await enterCard(); }
-      else if (d.need_name) { $("name-field").hidden = false; $("i-name").focus(); err.textContent = "On ne trouve pas encore ce numéro. Ajoute ton nom pour créer ta carte."; }
-      else if (d.error === "phone") err.textContent = "Ce numéro ne semble pas valide. Vérifie-le.";
-      else err.textContent = "Impossible d'ouvrir la carte pour le moment.";
+      var r, d;
+      if (auth.mode === "phone" || auth.mode === "pin") {
+        r = await db.rpc("card_login", { p_salon: SALON, p_phone: phone, p_pin: auth.mode === "pin" ? $("i-pin").value : null, p_device: DEVICE });
+        if (r.error) throw r.error; d = r.data; auth.phone = phone;
+        if (d.ok) return opened(d.key);
+        if (d.need_pin) return showAuth("pin");
+        if (d.error === "inconnu") return showAuth("signup");
+        if (d.need_setup && d.mailed) return showMailed("Ta carte se protège maintenant avec un code secret. On t'a envoyé un e-mail à " + d.hint + " : ouvre-le sur ce téléphone et appuie sur le bouton pour choisir ton code. Pense à regarder dans les spams.");
+        if (d.need_setup) return showAuth("setup");
+        if (d.error === "bloque") { err.textContent = "Trop d'essais. Ta carte est bloquée un moment pour ta sécurité. Réessaie plus tard ou appuie sur « Code oublié ? »."; }
+        else if (d.error === "code") { $("i-pin").value = ""; err.textContent = "Code incorrect." + (d.left > 0 ? " Encore " + d.left + " essai" + (d.left > 1 ? "s" : "") + " avant blocage." : ""); }
+        else err.textContent = ERR[d.error] || "Impossible d'ouvrir la carte pour le moment.";
+      } else if (auth.mode === "signup") {
+        r = await db.rpc("card_signup", { p_salon: SALON, p_phone: phone, p_first: name.split(/\s+/)[0], p_last: name.split(/\s+/).slice(1).join(" ") || null,
+          p_email: email, p_pin: p1, p_consent: $("i-consent").checked, p_device: DEVICE, p_handoff: false });
+        if (r.error) throw r.error; d = r.data;
+        if (d.ok) { state.askNotif = true; return opened(d.key); }
+        if (d.error === "existe") return showAuth("pin", ERR.existe + " Tape ton code.");
+        err.textContent = ERR[d.error] || "Impossible de créer la carte pour le moment.";
+      } else if (auth.mode === "setup") {
+        r = await db.rpc("card_setup_nomail", { p_salon: SALON, p_phone: phone, p_pin: p1, p_email: email, p_device: DEVICE });
+        if (r.error) throw r.error; d = r.data;
+        if (d.ok) return opened(d.key);
+        err.textContent = ERR[d.error] || "Impossible pour le moment.";
+      } else if (auth.mode === "reset") {
+        r = await db.rpc("card_pin_reset", { p_link: auth.link, p_pin: p1, p_device: DEVICE });
+        if (r.error) throw r.error; d = r.data;
+        if (d.ok) { auth.link = null; toast("Code enregistré !"); return opened(d.key); }
+        err.textContent = ERR[d.error] || "Impossible pour le moment.";
+      }
     } catch (ex) { err.textContent = "Connexion impossible. Vérifie ton réseau et réessaie."; }
-    btn.disabled = false; btn.textContent = $("name-field").hidden ? "Ouvrir ma carte" : "Créer ma carte";
+    btn.disabled = false; btn.textContent = label;
+  });
+
+  $("b-forgot").addEventListener("click", async function () {
+    var err = $("err-open"); err.textContent = "";
+    try {
+      var r = await db.rpc("card_forgot", { p_salon: SALON, p_phone: $("i-phone").value.trim() });
+      var d = r.data || {};
+      if (d.ok) return showMailed("On t'a envoyé un e-mail à " + d.hint + ". Ouvre-le sur ce téléphone et appuie sur le bouton pour choisir un nouveau code. Le lien marche pendant 1 heure. Pense à regarder dans les spams.");
+      if (d.error === "trop") err.textContent = "Un e-mail t'a déjà été envoyé à " + d.hint + ". Regarde ta boîte et tes spams.";
+      else if (d.error === "pas_email") err.textContent = "Aucune adresse e-mail n'est liée à ce numéro. Passe au salon, on t'aide.";
+      else err.textContent = "Impossible pour le moment. Réessaie.";
+    } catch (ex) { err.textContent = "Connexion impossible. Vérifie ton réseau et réessaie."; }
+  });
+  $("b-other").addEventListener("click", function () { $("i-phone").value = ""; showAuth("phone"); });
+  $("b-mailed-back").addEventListener("click", function () { $("i-phone").value = ""; showAuth("phone"); });
+
+  // Clients de l'ancienne carte : choisir son code (obligatoire, une seule fois)
+  function openSetPin() {
+    if (!$("o-setpin").hidden || !state.data) return;
+    var me = state.data.me;
+    $("sp-email-f").hidden = !!me.email;
+    $("sp-email-hint").hidden = !me.email;
+    $("sp-email-hint").textContent = me.email ? "En cas d'oubli, le lien arrivera sur " + me.email_hint + "." : "";
+    $("sp-err").textContent = ""; $("sp-pin1").value = ""; $("sp-pin2").value = "";
+    $("o-setpin").hidden = false;
+  }
+  $("f-setpin").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    var err = $("sp-err"), btn = $("b-setpin"), me = state.data.me, email = $("sp-email").value.trim();
+    err.textContent = "";
+    if (!pinPair($("sp-pin1").value, $("sp-pin2").value, err)) return;
+    if (!me.email && !mailOk(email)) { err.textContent = ERR.email; return; }
+    btn.disabled = true;
+    try {
+      var r = await db.rpc("card_set_pin", { p_key: state.key, p_pin: $("sp-pin1").value, p_email: me.email ? null : email });
+      var d = r.data || {};
+      if (d.ok || d.error === "deja") { $("o-setpin").hidden = true; toast("Code enregistré. Ta carte est protégée !"); await loadCard(true); }
+      else err.textContent = ERR[d.error] || "Impossible pour le moment.";
+    } catch (ex) { err.textContent = "Connexion impossible. Réessaie."; }
+    btn.disabled = false;
+  });
+
+  /* ================= MESSAGERIE ================= */
+  var msgState = { open: false, list: [], timer: null, sending: false };
+  function updateBadges() {
+    var n = state.data && state.data.me ? state.data.me.unread : 0;
+    ["dot-card", "dot-home"].forEach(function (id) { var d = $(id); d.hidden = !n; d.textContent = n > 9 ? "9+" : String(n); });
+  }
+  function fmtMsg(iso) {
+    try { var d = new Date(iso), t = new Date();
+      var hm = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+      return d.toDateString() === t.toDateString() ? "Aujourd'hui · " + hm : d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }) + " · " + hm;
+    } catch (e) { return ""; }
+  }
+  var TAGS = { annonce: "📢 Annonce à tous", promo: "✨ Nouveauté", rdv: "📅 Ton rendez-vous", info: "" };
+  function renderMsgs(canWrite) {
+    var L = msgState.list, html = '<p class="msg-note">⏳ Pheno répond en fin de journée. Pour une urgence, appelle le salon.</p>';
+    if (!L.length) html += '<p class="msg-empty">Aucun message pour l\'instant. Les infos du salon (retard, fermeture, rendez-vous) arriveront ici.</p>';
+    var lastSalon = -1, lastClient = -1;
+    L.forEach(function (m, i) { if (m.from === "salon") lastSalon = i; else lastClient = i; });
+    L.forEach(function (m, i) {
+      var me = m.from === "client", tag = !me && TAGS[m.kind] ? '<span class="tg">' + TAGS[m.kind] + '</span><br>' : "";
+      var quick = (!me && i === lastSalon && lastClient < lastSalon && canWrite && (m.kind === "rdv" || m.kind === "info"))
+        ? '<div class="quick"><button type="button" data-q="ok">👍 Bien reçu</button><button type="button" data-q="move">🔁 Je veux décaler</button><button type="button" data-q="cancel">✖️ J\'annule</button></div>' : "";
+      html += '<div class="bub' + (me ? " me" : "") + '">' + tag + esc(m.body) + '<small>' + esc(fmtMsg(m.at)) + '</small>' + quick + '</div>';
+    });
+    $("m-list").innerHTML = html;
+    $("m-list").scrollTop = $("m-list").scrollHeight;
+  }
+  async function loadMsgs() {
+    if (!state.key) return;
+    var r; try { r = await db.rpc("card_msgs", { p_key: state.key }); } catch (e) { return; }
+    var d = r && r.data; if (!d || !d.ok) return;
+    var changed = JSON.stringify(d.messages) !== JSON.stringify(msgState.list);
+    msgState.list = d.messages;
+    $("m-compose").hidden = !d.open; $("m-closed").hidden = d.open;
+    if (changed) renderMsgs(d.open);
+    if (state.data && state.data.me) { state.data.me.unread = 0; updateBadges(); }
+  }
+  function openMsgs() {
+    if (!state.data) return;
+    $("m-consent").checked = !!state.data.me.consent;
+    $("o-msg").hidden = false; msgState.open = true; msgState.list = null;
+    $("m-list").innerHTML = '<div class="spinner" aria-label="Chargement" style="margin:30px auto"></div>';
+    loadMsgs();
+    clearInterval(msgState.timer); msgState.timer = setInterval(function () { if (!document.hidden) loadMsgs(); }, 10000);
+  }
+  function closeMsgs() { $("o-msg").hidden = true; msgState.open = false; clearInterval(msgState.timer); }
+  async function sendMsg(body, quick) {
+    if (msgState.sending) return; msgState.sending = true; $("b-msg-send").disabled = true;
+    try {
+      var r = await db.rpc("card_msg_send", { p_key: state.key, p_body: body || "", p_quick: quick || null });
+      var d = r.data || {};
+      if (d.ok) { $("m-text").value = ""; await loadMsgs(); toast("Message envoyé à Pheno"); }
+      else if (d.error === "ferme") { toast("La messagerie est fermée pour le moment."); loadMsgs(); }
+      else if (d.error === "trop") toast("Tu as envoyé beaucoup de messages aujourd'hui. Pheno te répond bientôt.");
+      else toast("Message non envoyé. Réessaie.");
+    } catch (ex) { toast("Connexion impossible. Réessaie."); }
+    msgState.sending = false; $("b-msg-send").disabled = false;
+  }
+  $("b-msg").addEventListener("click", openMsgs);
+  $("b-home-msg").addEventListener("click", async function () { if (!state.data) await loadCard(true); openMsgs(); });
+  $("b-msg-close").addEventListener("click", closeMsgs);
+  $("b-msg-send").addEventListener("click", function () { var v = $("m-text").value.trim(); if (v) sendMsg(v, null); });
+  $("m-list").addEventListener("click", function (e) { var b = e.target.closest("[data-q]"); if (b) sendMsg("", b.getAttribute("data-q")); });
+  $("m-consent").addEventListener("change", function () {
+    var v = this.checked;
+    db.rpc("card_consent", { p_key: state.key, p_value: v }).then(function (r) {
+      if (r.data && r.data.ok) { state.data.me.consent = v; toast(v ? "Tu recevras les annonces du salon." : "Tu ne recevras plus les annonces. Les messages sur tes rendez-vous arrivent toujours."); }
+    }, function () {});
   });
 
   $("b-logout").addEventListener("click", switchNumber);
@@ -936,33 +1210,52 @@ a.btn{text-decoration:none;box-sizing:border-box}
   });
 
   // Rafraîchit la carte pendant qu'elle est affichée : le client voit son tampon arriver au salon.
-  setInterval(function () { if (state.token && !document.hidden && !state.spinning && !$("v-card").hidden) loadCard(false); }, 15000);
-  document.addEventListener("visibilitychange", function () { if (!document.hidden && state.token && !$("v-card").hidden) loadCard(false); });
+  setInterval(function () { if (state.key && !document.hidden && !state.spinning && (!$("v-card").hidden || !$("v-home").hidden)) loadCard(false); }, 15000);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden && state.key && !$("v-card").hidden) loadCard(false); });
 
   // Démarrage
   state.soundOn = read("pnc_sound") !== "0";
   $("b-sound").textContent = "Son : " + (state.soundOn ? "oui" : "non");
-  var m = location.hash.match(/t=([0-9a-f-]{36})/i);
-  if (m) { store(TOKEN_KEY, m[1]); history.replaceState(null, "", location.pathname); }
-  state.token = read(TOKEN_KEY);
-  // Client qui avait l'ancienne carte sur ce téléphone : on retrouve son numéro et on ouvre sa nouvelle carte directement.
+  var hash = location.hash;
+  if (/msg/.test(hash)) state.openMsg = true;
+  var mLink = hash.match(/m=([0-9a-f]{64})/i), mOld = hash.match(/t=([0-9a-f-]{36})/i);
+  if (mLink || mOld) history.replaceState(null, "", location.pathname);
+  state.key = read(KEY_KEY);
+  var oldTok = mOld ? mOld[1] : read(TOKEN_KEY);
   var oldTel = read("phenoFidTel") || read("phenoClientTel") || read("pheno_client_tel") || read("clientTel");
-  if (state.token) enterCard();
-  else if (oldTel) {
-    show("v-loading");
-    db.rpc("card_open", { p_salon: SALON, p_phone: oldTel, p_name: null }).then(function (r) {
-      if (r && r.data && r.data.ok) { state.token = r.data.token; store(TOKEN_KEY, r.data.token); enterCard(); }
-      else { $("i-phone").value = oldTel; show("v-welcome"); }
-    }, function () { $("i-phone").value = oldTel; show("v-welcome"); });
-  }
-  else show("v-welcome");
+
+  (async function start() {
+    // Lien reçu par e-mail (nouveau code, gestion du rendez-vous) ou depuis le hub
+    if (mLink) {
+      show("v-loading");
+      try {
+        var r = await db.rpc("card_magic", { p_link: mLink[1], p_device: DEVICE }), d = r.data || {};
+        if (d.ok && d.set_pin) { auth.link = mLink[1]; return showAuth("reset"); }
+        if (d.ok && d.key) { if (/hub/.test(hash)) state.askNotif = true; return opened(d.key); }
+        if (!state.key) return showAuth("phone", ERR.expire);
+      } catch (e) { if (!state.key) return showAuth("phone", "Connexion impossible. Vérifie ton réseau."); }
+    }
+    if (state.key) return enterCard();
+    // Ancienne carte encore ouverte sur ce téléphone : passage au code secret
+    if (oldTok) {
+      show("v-loading");
+      try {
+        var u = await db.rpc("card_upgrade", { p_token: oldTok, p_device: DEVICE }), ud = u.data || {};
+        store(TOKEN_KEY, null);
+        if (ud.ok) return opened(ud.key);
+        if (ud.mailed) return showMailed("Ta carte se protège maintenant avec un code secret. On t'a envoyé un e-mail à " + ud.hint + " : ouvre-le sur ce téléphone et appuie sur le bouton pour choisir ton code. Pense à regarder dans les spams.");
+      } catch (e) {}
+    }
+    if (oldTel) $("i-phone").value = oldTel;
+    showAuth("phone");
+  })();
 })();
 </script>
 <script>
 // Mise a jour automatique : a chaque ouverture ou retour sur la page, verifie s'il existe une nouvelle
 // version publiee et recharge. Changer APP_VERSION a chaque modification.
 (function () {
-  var APP_VERSION = '2026-11-01-r';
+  var APP_VERSION = '2026-11-05-msg1';
   var busy = false, last = 0;
   function check() {
     var now = Date.now();
