@@ -866,12 +866,16 @@ a.btn{text-decoration:none;box-sizing:border-box}
   }
 
   function siteKey() { return state.data && state.data.me ? state.data.me.site : null; }
-  function openBooking(again) {
+  async function openBooking(again) {
     var f = $("book-frame");
-    // « Refaire la même » : le site reconnaît le client par sa carte et ouvre directement le choix du créneau
-    var url = BOOK_URL + (siteKey() ? "#me=" + encodeURIComponent(siteKey()) + (again ? "&go=1" : "") : "");
-    if (f.getAttribute("src") !== url) f.setAttribute("src", url);
     show("v-book");
+    // « Refaire la même » : la carte donne au site un lien d'un instant, à usage unique, pour reconnaître le client
+    var url = BOOK_URL;
+    try {
+      var r = await db.rpc("card_handoff", { p_key: state.key });
+      if (r.data && r.data.ok && r.data.link) url = BOOK_URL + "#mk=" + r.data.link + (again ? "&go=1" : "");
+    } catch (e) {}
+    f.setAttribute("src", url);
   }
 
   function renderRdv() {
@@ -1255,7 +1259,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
 // Mise a jour automatique : a chaque ouverture ou retour sur la page, verifie s'il existe une nouvelle
 // version publiee et recharge. Changer APP_VERSION a chaque modification.
 (function () {
-  var APP_VERSION = '2026-11-05-msg2';
+  var APP_VERSION = '2026-11-05-msg3';
   var busy = false, last = 0;
   function check() {
     var now = Date.now();
