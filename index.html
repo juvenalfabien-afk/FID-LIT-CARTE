@@ -832,7 +832,6 @@ a.btn{text-decoration:none;box-sizing:border-box}
     }
     state.lastStamps = r.data.card.stamps;
     updateBadges();
-    if (!r.data.me.pin) openSetPin();
     maybeCelebrate();
   }
 
@@ -1001,7 +1000,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
   var MODES = {
     phone:  { t: "Ta carte de fidélité, direct dans ta poche", p: "Tape ton numéro de téléphone pour ouvrir ta carte.", f: ["phone"], b: "Continuer" },
     pin:    { t: "Bon retour !", p: "Tape ton code secret à 4 chiffres.", f: ["phone", "pin"], b: "Ouvrir ma carte", links: true },
-    signup: { t: "Créons ta carte", p: "Ce numéro n'a pas encore de carte. Il ne manque que quelques infos.", f: ["phone", "name", "email", "new", "consent"], b: "Créer ma carte" },
+    signup: { t: "Créons ta carte", p: "Ce numéro n'a pas encore de carte. Il ne manque que quelques infos.", f: ["phone", "name", "email", "consent"], b: "Créer ma carte" },
     setup:  { t: "Protège ta carte", p: "Nouveau : ta carte se protège avec un code secret. Choisis-le et ajoute ton e-mail.", f: ["phone", "email", "new"], b: "Enregistrer et ouvrir" },
     reset:  { t: "Nouveau code secret", p: "Choisis ton nouveau code à 4 chiffres.", f: ["new"], b: "Enregistrer mon code" }
   };
@@ -1045,7 +1044,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
     var p1 = $("i-pin1").value, p2 = $("i-pin2").value, email = $("i-email").value.trim(), name = $("i-name").value.trim();
     if (auth.mode === "signup" && name.length < 2) { err.textContent = ERR.name; return; }
     if ((auth.mode === "signup" || auth.mode === "setup") && !mailOk(email)) { err.textContent = ERR.email; return; }
-    if ((auth.mode === "signup" || auth.mode === "setup" || auth.mode === "reset") && !pinPair(p1, p2, err)) return;
+    if ((auth.mode === "setup" || auth.mode === "reset") && !pinPair(p1, p2, err)) return;
     if (auth.mode === "pin" && !/^[0-9]{4}$/.test($("i-pin").value)) { err.textContent = "Tape les 4 chiffres de ton code."; return; }
     var label = btn.textContent; btn.disabled = true; btn.textContent = "Un instant…";
     try {
@@ -1063,10 +1062,10 @@ a.btn{text-decoration:none;box-sizing:border-box}
         else err.textContent = ERR[d.error] || "Impossible d'ouvrir la carte pour le moment.";
       } else if (auth.mode === "signup") {
         r = await db.rpc("card_signup", { p_salon: SALON, p_phone: phone, p_first: name.split(/\s+/)[0], p_last: name.split(/\s+/).slice(1).join(" ") || null,
-          p_email: email, p_pin: p1, p_consent: $("i-consent").checked, p_device: DEVICE, p_handoff: false });
+          p_email: email, p_pin: null, p_consent: $("i-consent").checked, p_device: DEVICE, p_handoff: false });
         if (r.error) throw r.error; d = r.data;
         if (d.ok) { state.askNotif = true; return opened(d.key); }
-        if (d.error === "existe") return showAuth("pin", ERR.existe + " Tape ton code.");
+        if (d.error === "existe") return showAuth("phone", ERR.existe + " Appuie sur « Continuer » pour l'ouvrir.");
         err.textContent = ERR[d.error] || "Impossible de créer la carte pour le moment.";
       } else if (auth.mode === "setup") {
         r = await db.rpc("card_setup_nomail", { p_salon: SALON, p_phone: phone, p_pin: p1, p_email: email, p_device: DEVICE });
@@ -1259,7 +1258,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
 // Mise a jour automatique : a chaque ouverture ou retour sur la page, verifie s'il existe une nouvelle
 // version publiee et recharge. Changer APP_VERSION a chaque modification.
 (function () {
-  var APP_VERSION = '2026-11-05-msg3';
+  var APP_VERSION = '2026-11-06-sanscode1';
   var busy = false, last = 0;
   function check() {
     var now = Date.now();
