@@ -206,7 +206,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
 .check input{width:20px;height:20px;accent-color:var(--gold);margin-top:2px;flex-shrink:0}
 .mailbox{display:grid;gap:12px;text-align:center;padding:18px;border:1px solid rgba(201,168,76,.45);border-radius:var(--r-md);background:rgba(201,168,76,.08)}
 .msg-btn{position:relative}
-.dot{position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#E0605A;color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center}
+.dot{position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--gold-grad);color:var(--ink);font-size:12px;font-weight:700;display:grid;place-items:center}
 .ov-full{position:fixed;inset:0;z-index:55;background:var(--ink);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 .ov-head{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line)}
 .ov-head img{width:40px;height:40px}
@@ -227,6 +227,9 @@ a.btn{text-decoration:none;box-sizing:border-box}
 .msg-compose textarea{flex:1;min-height:46px;max-height:120px;resize:none;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--coal);color:var(--cream);font:inherit;font-size:16px}
 .msg-compose button{width:auto;padding:0 16px}
 .msg-foot .check{margin-top:10px;font-size:13px}
+.snd-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px;font-size:13px;color:var(--muted)}
+.snd-row button{border:1px solid var(--line);background:transparent;color:var(--cream);border-radius:999px;padding:7px 11px;font:inherit;font-size:13px;font-weight:600}
+.snd-row button.on{background:var(--gold-grad);color:var(--ink);border-color:transparent}
 @media (max-width:480px){#v-card .top>div:not(.spacer){display:none}#v-card .top .icon-btn{padding-inline:10px}}
 </style>
 <script>(function(){try{var sa=(window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone;if(sa&&!/carte|t=|m=|msg/.test(location.hash))location.replace("https://phenoandco-carte.netlify.app/");}catch(e){}})();</script>
@@ -451,6 +454,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
       <button class="btn btn-gold" id="b-msg-send" type="button">Envoyer</button>
     </div>
     <p class="small" id="m-closed" hidden style="text-align:center;margin:6px 0 0">La messagerie est fermée pour le moment. Pour une urgence, appelle le salon.</p>
+    <div class="snd-row" id="m-snd">🔔 Son des messages : <button type="button" data-snd="carillon">Carillon doré</button><button type="button" data-snd="ciseaux">Ciseaux</button><button type="button" data-snd="goutte">Goutte</button><button type="button" data-snd="off">Aucun</button></div>
     <label class="check"><input type="checkbox" id="m-consent"> J'accepte de recevoir les annonces de PHENO&amp;CO (fermetures, nouveautés).</label>
   </div>
 </div>
@@ -831,6 +835,9 @@ a.btn{text-decoration:none;box-sizing:border-box}
       if (!$("v-card").hidden) setTimeout(openWheel, 900);
     }
     state.lastStamps = r.data.card.stamps;
+    var un = r.data.me ? r.data.me.unread : 0;
+    if (state.lastUnread != null && un > state.lastUnread && !msgState.open) playMsgSound();
+    state.lastUnread = un;
     updateBadges();
     maybeCelebrate();
   }
@@ -1154,6 +1161,9 @@ a.btn{text-decoration:none;box-sizing:border-box}
     var r; try { r = await db.rpc("card_msgs", { p_key: state.key }); } catch (e) { return; }
     var d = r && r.data; if (!d || !d.ok) return;
     var changed = JSON.stringify(d.messages) !== JSON.stringify(msgState.list);
+    var nSalon = d.messages.filter(function (m) { return m.from === "salon"; }).length;
+    if (msgState.nSalon != null && nSalon > msgState.nSalon) playMsgSound();
+    msgState.nSalon = nSalon; state.lastUnread = 0;
     msgState.list = d.messages;
     $("m-compose").hidden = !d.open; $("m-closed").hidden = d.open;
     if (changed) renderMsgs(d.open);
@@ -1162,7 +1172,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
   function openMsgs() {
     if (!state.data) return;
     $("m-consent").checked = !!state.data.me.consent;
-    $("o-msg").hidden = false; msgState.open = true; msgState.list = null;
+    $("o-msg").hidden = false; msgState.open = true; msgState.list = null; msgState.nSalon = null; paintSnd();
     $("m-list").innerHTML = '<div class="spinner" aria-label="Chargement" style="margin:30px auto"></div>';
     loadMsgs();
     clearInterval(msgState.timer); msgState.timer = setInterval(function () { if (!document.hidden) loadMsgs(); }, 10000);
@@ -1180,6 +1190,28 @@ a.btn{text-decoration:none;box-sizing:border-box}
     } catch (ex) { toast("Connexion impossible. Réessaie."); }
     msgState.sending = false; $("b-msg-send").disabled = false;
   }
+  /* Son des messages : Carillon doré par défaut, au choix du client */
+  var SND_KEY = "pnc_msg_sound", sndEls = {};
+  ["carillon", "ciseaux", "goutte"].forEach(function (k) { var a = new Audio("sons/" + k + ".wav"); a.preload = "auto"; sndEls[k] = a; });
+  function sndChoice() { var v = read(SND_KEY); return v === "ciseaux" || v === "goutte" || v === "off" ? v : "carillon"; }
+  function playMsgSound(k) {
+    k = k || sndChoice(); var a = sndEls[k]; if (!a) return;
+    try { a.currentTime = 0; var p = a.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
+  }
+  function paintSnd() { var c = sndChoice(); document.querySelectorAll("#m-snd [data-snd]").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-snd") === c); }); }
+  // L'iPhone n'autorise le son qu'après un premier appui : on « réveille » les sons discrètement
+  var sndUnlocked = false;
+  document.addEventListener("pointerdown", function () {
+    if (sndUnlocked) return; sndUnlocked = true;
+    Object.keys(sndEls).forEach(function (k) { var a = sndEls[k]; try { a.muted = true; var p = a.play(); var done = function () { a.pause(); a.currentTime = 0; a.muted = false; }; if (p && p.then) p.then(done, function () { a.muted = false; }); else done(); } catch (e) {} });
+  }, true);
+  $("m-snd").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-snd]"); if (!b) return;
+    var k = b.getAttribute("data-snd"); store(SND_KEY, k); paintSnd();
+    if (k !== "off") playMsgSound(k);
+  });
+  paintSnd();
+
   $("b-msg").addEventListener("click", openMsgs);
   $("b-home-msg").addEventListener("click", async function () { if (!state.data) await loadCard(true); openMsgs(); });
   $("b-msg-close").addEventListener("click", closeMsgs);
@@ -1258,7 +1290,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
 // Mise a jour automatique : a chaque ouverture ou retour sur la page, verifie s'il existe une nouvelle
 // version publiee et recharge. Changer APP_VERSION a chaque modification.
 (function () {
-  var APP_VERSION = '2026-11-06-sanscode1';
+  var APP_VERSION = '2026-11-07-son1';
   var busy = false, last = 0;
   function check() {
     var now = Date.now();
