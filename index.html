@@ -213,6 +213,9 @@ a.btn{text-decoration:none;box-sizing:border-box}
 .ov-head b{font-family:var(--font-display);font-size:20px;display:block}
 .ov-head span{font-size:13px;color:var(--muted)}
 .msg-wrap{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px;max-width:760px;width:100%;margin:0 auto}
+.m-push{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px auto 0;width:calc(100% - 32px);max-width:728px;box-sizing:border-box;padding:10px 12px;border-radius:12px;border:1px solid rgba(240,235,225,.15);font-size:14px;color:var(--cream)}
+.m-push.on{border-color:rgba(95,191,138,.45);color:#8FD9AE}
+.m-push a{flex:none;background:var(--gold);color:#0B1629;font-weight:700;text-decoration:none;border-radius:999px;padding:8px 14px;font-size:13px}
 .msg-note{background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.35);color:var(--gold-soft);border-radius:12px;padding:10px 12px;font-size:14px}
 .bub{max-width:88%;padding:11px 14px;border-radius:16px;background:var(--steel);border:1px solid var(--line);font-size:15px;line-height:1.45;white-space:pre-wrap;word-wrap:break-word}
 .bub.me{align-self:flex-end;background:var(--gold-grad);color:var(--ink);border-color:transparent}
@@ -447,6 +450,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
     <img src="logo.png" alt="">
     <div><b id="m-title">Messages</b><span>PHENO&amp;CO</span></div>
   </div>
+  <div class="m-push" id="m-push" hidden></div>
   <div class="msg-wrap" id="m-list" aria-live="polite"></div>
   <div class="msg-foot">
     <div class="msg-compose" id="m-compose">
@@ -1174,8 +1178,19 @@ a.btn{text-decoration:none;box-sizing:border-box}
     $("m-consent").checked = !!state.data.me.consent;
     $("o-msg").hidden = false; msgState.open = true; msgState.list = null; msgState.nSalon = null; paintSnd();
     $("m-list").innerHTML = '<div class="spinner" aria-label="Chargement" style="margin:30px auto"></div>';
-    loadMsgs();
+    loadMsgs(); loadPush();
     clearInterval(msgState.timer); msgState.timer = setInterval(function () { if (!document.hidden) loadMsgs(); }, 10000);
+  }
+  // État des notifications du client (elles se règlent dans l'appli PHENO&CO, le hub)
+  var HUB_NOTIF = "https://phenoandco-carte.netlify.app/#notif";
+  async function loadPush() {
+    var el = $("m-push"); if (!state.key) return;
+    var r; try { r = await db.rpc("card_push_status", { p_key: state.key }); } catch (e) { return; }
+    var d = r && r.data; if (!d || !d.ok) { el.hidden = true; return; }
+    el.classList.toggle("on", !!d.on);
+    el.innerHTML = d.on ? '<span>🔔 Notifications activées ✓ <small style="color:var(--muted)">· à régler dans l\'appli PHENO&amp;CO</small></span>'
+      : '<span>🔕 Notifications pas activées</span><a href="' + HUB_NOTIF + '" rel="noopener">Activer</a>';
+    el.hidden = false;
   }
   function closeMsgs() { $("o-msg").hidden = true; msgState.open = false; clearInterval(msgState.timer); }
   async function sendMsg(body, quick) {
@@ -1290,7 +1305,7 @@ a.btn{text-decoration:none;box-sizing:border-box}
 // Mise a jour automatique : a chaque ouverture ou retour sur la page, verifie s'il existe une nouvelle
 // version publiee et recharge. Changer APP_VERSION a chaque modification.
 (function () {
-  var APP_VERSION = '2026-11-07-son1';
+  var APP_VERSION = '2026-11-07-notif1';
   var busy = false, last = 0;
   function check() {
     var now = Date.now();
